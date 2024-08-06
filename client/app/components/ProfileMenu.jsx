@@ -8,7 +8,7 @@ function ProfileMenu() {
 
   if (session) {
     return (
-      <div className="flex items-center gap-2 tracking-tight">
+      <div className="flex items-center gap-2">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger>
             <img
@@ -24,10 +24,10 @@ function ProfileMenu() {
               align="end"
             >
               <DropdownMenu.Label className="flex flex-col px-2 font-medium">
-                <span className="text-lg tracking-tight">
-                  {session.user.name}
+                <span className="text-lg font-medium">{session.user.name}</span>
+                <span className="font-normal text-gray-500">
+                  {session.user.email}
                 </span>
-                <span className="text-gray-500">{session.user.email}</span>
               </DropdownMenu.Label>
               <DropdownMenu.Separator className="mx-1 h-px bg-gray-100" />
               <DropdownMenu.Item>

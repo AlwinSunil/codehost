@@ -4,7 +4,7 @@ export default function Footer() {
       <span className="text-sm font-medium text-gray-700">
         Made with ❤️ by{" "}
         <a
-          href="https://twitter.com/alwinsunil_"
+          href="https://alwinsunil.in"
           target="_blank"
           rel="noopener noreferrer"
           className="underline"

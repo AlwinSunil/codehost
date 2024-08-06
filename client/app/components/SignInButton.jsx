@@ -6,8 +6,7 @@ export default function SignInButton() {
   return (
     <div>
       <button
-        onClick={() => signIn()}
-        type="submit"
+        onClick={() => signIn("github")}
         className="border bg-emerald-500 px-3 py-1 font-semibold text-white hover:bg-emerald-600"
       >
         Sign in with Github

@@ -1,8 +1,12 @@
-import { getServerSession } from "next-auth";
 import { GeistMono } from "geist/font/mono";
-import SessionProvider from "./components/SessionProvider";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
+import { GeistSans } from "geist/font/sans";
+import { getServerSession } from "next-auth";
+import { authConfig } from "@/lib/auth";
+
+import SessionProvider from "@/app/components/SessionProvider";
+import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
+
 import "./globals.css";
 
 export const metadata = {
@@ -11,11 +15,13 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  const session = await getServerSession();
+  const session = await getServerSession(authConfig);
 
   return (
     <html lang="en">
-      <body className={`${GeistMono.className} min-h-screen`}>
+      <body
+        className={`${GeistMono.className} ${GeistSans.variable} min-h-screen`}
+      >
         <SessionProvider session={session}>
           <Navbar />
           {children}
