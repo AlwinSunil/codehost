@@ -1,24 +1,23 @@
-import Link from "next/link";
+import { authConfig } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+import SignInButton from "./components/SignInButton";
+
+export default async function Home() {
+  const session = await getServerSession(authConfig);
+
+  if (session) redirect("/dashboard");
+
   return (
-    <main className="flex min-h-screen">
-      <div className="flex h-fit px-10 py-4 border-b w-screen justify-between items-center">
-        <Link href="/" className="font-bold tracking-tight text-2xl">
-          CodeHost
-        </Link>
-        <div className="flex gap-3 font-medium">
-          <Link href="/login" className="px-2 underline py-1 hover:bg-gray-200">
-            login
-          </Link>
-          <Link
-            href="/signup"
-            className="bg-emerald-500 hover:text-white py-1 px-2"
-          >
-            signup
-          </Link>
-        </div>
-      </div>
+    <main className="flex flex-col justify-center gap-1.5 px-4 py-28 md:px-10">
+      <h1 className="text-4xl font-bold tracking-tighter">
+        Deploy your frontend code with ease
+      </h1>
+      <span className="mb-2 flex items-center justify-between text-gray-700">
+        Sign in with github to get started
+      </span>
+      <SignInButton />
     </main>
   );
 }
