@@ -1,6 +1,6 @@
-import { PrismaAdapter } from "@auth/prisma-adapter"; // Fixed import path for PrismaAdapter
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
-import GitHubProvider from "next-auth/providers/github"; // Fixed import for GitHubProvider
+import GitHubProvider from "next-auth/providers/github";
 
 const prisma = new PrismaClient();
 
@@ -12,4 +12,10 @@ export const authConfig = {
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
     }),
   ],
+  callbacks: {
+    async signIn(user) {
+      console.log("signIn - user:", user);
+      return true;
+    },
+  },
 };

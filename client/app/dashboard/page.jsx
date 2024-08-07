@@ -80,7 +80,7 @@ export default function DashboardHome() {
               <span className="mt-1 font-semibold">{project.name}</span>
               <span
                 className={clsx(
-                  "ml-auto h-fit w-fit bg-gray-200 px-1 text-xs font-semibold",
+                  "ml-auto h-fit w-fit px-1 text-xs font-semibold",
                   project.status === "Active" &&
                     "border border-emerald-200 bg-emerald-50 text-emerald-500",
                   project.status === "Failed" &&

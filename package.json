@@ -12,8 +12,5 @@
     "url": "AlwinSunil/codehost"
   },
   "author": "AlwinSunil",
-  "license": "ISC",
-  "dependencies": {
-    "clsx": "^2.1.1"
-  }
+  "license": "ISC"
 }
