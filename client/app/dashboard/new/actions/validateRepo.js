@@ -22,11 +22,12 @@ export async function validateAndFetchBranches(prevState, formData) {
 
     return {
       branches: branches.map((branch) => branch.name),
+      url: repoUrl,
       error: null,
     };
   } catch (error) {
     if (error.status === 404) {
-      return { branches: [], error: "Repository not found or is private" };
+      return { branches: [], error: "An invalid or prvate repository" };
     }
     return {
       branches: [],

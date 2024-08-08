@@ -2,7 +2,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
 import GitHubProvider from "next-auth/providers/github";
 
-const prisma = new PrismaClient();
+export const prisma = new PrismaClient();
 
 export const authConfig = {
   adapter: PrismaAdapter(prisma),
@@ -13,9 +13,9 @@ export const authConfig = {
     }),
   ],
   callbacks: {
-    async signIn(user) {
-      console.log("signIn - user:", user);
-      return true;
+    async session({ session, user }) {
+      session.user.id = user.id;
+      return session;
     },
   },
 };

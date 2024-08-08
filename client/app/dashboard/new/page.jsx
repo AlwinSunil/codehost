@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useFormState, useFormStatus } from "react-dom";
-import { validateAndFetchBranches } from "./action";
+import { validateAndFetchBranches } from "./actions/validateRepo";
+import { createProject } from "./actions/createProject";
+import { useRouter } from "next/navigation";
 import clsx from "clsx";
 
 const initialState = {
@@ -10,7 +12,7 @@ const initialState = {
   error: null,
 };
 
-function SubmitButton() {
+function ValidateButton() {
   const { pending } = useFormStatus();
   return (
     <button
@@ -32,6 +34,8 @@ export default function NewProject() {
     validateAndFetchBranches,
     initialState,
   );
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const router = useRouter();
 
   const validateGithubUrl = (url) => {
     const githubUrlPattern = /^https?:\/\/github\.com\/[\w.-]+\/[\w.-]+$/;
@@ -46,9 +50,22 @@ export default function NewProject() {
     setShowUrlWarning(repoUrl !== "" && !isValid);
   }, [repoUrl]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log({ repoUrl, selectedBranch });
+    setIsCreatingProject(true);
+    try {
+      const response = await createProject(repoUrl, selectedBranch);
+      if (response.id) {
+        router.push(`/deployment/${response.id}`);
+      } else {
+        throw new Error("Failed to create project");
+      }
+    } catch (error) {
+      console.error("Error creating project:", error);
+      // Handle error (e.g., show error message to user)
+    } finally {
+      setIsCreatingProject(false);
+    }
   };
 
   return (
@@ -115,15 +132,17 @@ export default function NewProject() {
         </div>
         <div className="mt-4 flex justify-end">
           {isValidUrl && state.branches.length === 0 ? (
-            <SubmitButton />
+            <ValidateButton />
           ) : (
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!state.branches.length || !selectedBranch}
+              disabled={
+                !state.branches.length || !selectedBranch || isCreatingProject
+              }
               className="inline-flex justify-center border border-transparent bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
             >
-              Create Project
+              {isCreatingProject ? "Creating Project..." : "Create Project"}
             </button>
           )}
         </div>
