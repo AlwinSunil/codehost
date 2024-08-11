@@ -1,24 +1,14 @@
 "use server";
 
-import { Octokit } from "@octokit/rest";
-
-const octokit = new Octokit({
-  auth: process.env.GITHUB_ACCESS_TOKEN,
-});
+import getGithubRepoAndBranch from "./helpers/getGithubRepoAndBranch";
 
 export async function validateAndFetchBranches(prevState, formData) {
   const repoUrl = formData.get("repoUrl");
-  const [, , , owner, repo] = repoUrl.split("/");
 
   try {
-    // Check if the repository exists and is public
-    await octokit.repos.get({ owner, repo });
+    const { branches } = await getGithubRepoAndBranch(repoUrl);
 
-    // Get all branches
-    const { data: branches } = await octokit.repos.listBranches({
-      owner,
-      repo,
-    });
+    console.log(branches);
 
     return {
       branches: branches.map((branch) => branch.name),

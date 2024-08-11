@@ -12,33 +12,45 @@ generator client {
 }
 
 model User {
-  id            String          @id @default(cuid())
+  id            String       @id @default(cuid())
   name          String?
-  email         String          @unique
+  email         String       @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
-  tasks         Task[]
-  ongoingJob    OngoingJob?     @relation(fields: [ongoingJobId], references: [id])
-  ongoingJobId  String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  Authenticator Authenticator[]
+  projects      Project[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  OngoingJob    OngoingJob[]
+  Task          Task[]
+}
+
+model Project {
+  id        String        @id @default(cuid())
+  name      String
+  repoLink  String
+  branch    String
+  status    ProjectStatus @default(ACTIVE)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  tasks     Task[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId], name: "idx_owner_id")
 }
 
 model Task {
-  id           String      @id @default(cuid())
-  createdAt    DateTime    @default(now())
-  userId       String
-  repoLink     String
-  branch       String
-  status       TaskStatus  @default(ON_QUEUE)
-  startedAt    DateTime?
-  completedAt  DateTime?
-  ongoingJobId String?
-  User         User        @relation(fields: [userId], references: [id])
-  OngoingJob   OngoingJob?
+  id          String      @id @default(cuid())
+  status      TaskStatus  @default(ON_QUEUE)
+  startedAt   DateTime    @default(now())
+  completedAt DateTime?
+  projectId   String
+  userId      String
+  project     Project     @relation(fields: [projectId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+  OngoingJob  OngoingJob?
 
   @@index([userId], name: "idx_user_id")
 }
@@ -47,11 +59,17 @@ model OngoingJob {
   id        String   @id @default(cuid())
   taskId    String   @unique
   task      Task     @relation(fields: [taskId], references: [id])
-  createdAt DateTime @default(now())
   userId    String
-  User      User[]
+  user      User     @relation(fields: [userId], references: [id])
+  projectId String?
+  createdAt DateTime @default(now())
 
   @@index([taskId], name: "idx_task_id")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  DISABLED
 }
 
 enum TaskStatus {
@@ -99,20 +117,4 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
-}
-
-// Optional for WebAuthn support
-model Authenticator {
-  credentialID         String  @unique
-  userId               String
-  providerAccountId    String
-  credentialPublicKey  String
-  counter              Int
-  credentialDeviceType String
-  credentialBackedUp   Boolean
-  transports           String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, credentialID])
 }
