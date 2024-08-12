@@ -56,7 +56,7 @@ export default function NewProject() {
     try {
       const response = await createProject(repoUrl, selectedBranch);
       if (response.id) {
-        router.push(`/deployment/${response.id}`);
+        router.push(`/project/${response.id}`);
       } else {
         throw new Error("Failed to create project");
       }
