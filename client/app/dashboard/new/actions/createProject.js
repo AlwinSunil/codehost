@@ -30,19 +30,14 @@ export async function createProject(repoUrl, branch) {
     const userId = session.user.id;
     const [, , , owner, repo] = repoUrl.split("/");
 
-    // const isValidRepo = await verifyRepoAccess(repoUrl, branch);
+    let latestCommit;
 
-    const commit = await getLatestCommit(owner, repo, branch);
-
-    console.log(commit);
-
-    if (!commit) {
+    try {
+      latestCommit = await getLatestCommit(owner, repo, branch);
+    } catch (error) {
+      console.error("Error getting latest commit:", error);
       return { sucess: false, error: "Invalid repository or branch" };
     }
-
-    // if (!isValidRepo) {
-    //   throw new Error("Invalid repository or branch");
-    // }
 
     const user = await prisma.user.findUnique({
       where: {
@@ -72,6 +67,8 @@ export async function createProject(repoUrl, branch) {
     const task = await prisma.task.create({
       data: {
         status: "ON_QUEUE",
+        commitHash: latestCommit.sha,
+        commitMessage: latestCommit.commit.message,
         userId: userId,
         projectId: project.id,
         completedAt: null,
