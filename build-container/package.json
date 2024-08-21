@@ -1,0 +1,11 @@
+{
+  "name": "build-container",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Build service for CodeHost",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.633.0",
+    "p-limit": "^6.1.0"
+  }
+}
