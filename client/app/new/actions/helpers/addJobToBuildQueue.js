@@ -13,6 +13,8 @@ export async function addJobToBuildQueue(taskId, repoUrl, branch, userId) {
       userId,
     };
 
+    console.log("Message:", message);
+
     // Create the SendMessageCommand
     const command = new SendMessageCommand({
       QueueUrl: queueUrl,

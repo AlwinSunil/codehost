@@ -2,6 +2,7 @@ import { authConfig, prisma } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { formatDistanceToNow } from "date-fns";
 import ProjectHeader from "@/app/components/ProjectHeader";
+import { notFound } from "next/navigation";
 
 export default async function Project({ params }) {
   const session = await getServerSession(authConfig);
@@ -30,13 +31,18 @@ export default async function Project({ params }) {
     },
   });
 
+  // Redirect to not found if the project does not exist
+  if (!project) {
+    notFound();
+  }
+
   const latestTask = project?.tasks[0];
 
   return (
     <div className="flex min-h-[calc(100vh-7rem)] flex-col gap-1 px-4 py-3 md:px-10">
       <ProjectHeader project={project} />
       <div className="flex items-center gap-4 border-b px-4 py-2">
-        <span className="mb-0.5 border-r text-base font-medium capitalize leading-5 tracking-tight">
+        <span className="mb-0.5 border-r text-base font-medium capitalize leading-4 tracking-tight">
           Latest task
         </span>
         <div className="flex w-full items-center justify-between gap-4 px-4 py-2 md:px-10">

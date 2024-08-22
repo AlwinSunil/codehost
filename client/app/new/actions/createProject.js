@@ -1,13 +1,21 @@
 "use server";
 
+import crypto from "crypto";
 import { getServerSession } from "next-auth";
-
 import { prisma, authConfig } from "@/lib/auth";
-
-import { verifyRepoAccess } from "./helpers/verifyRepoAccess";
+import { octokit } from "@/lib/octokit";
 import { addJobToBuildQueue } from "./helpers/addJobToBuildQueue";
 
-import { octokit } from "@/lib/octokit";
+const generateSubdomain = (repo) => {
+  const randomLetters = crypto
+    .randomBytes(5)
+    .toString("base64")
+    .replace(/[^a-zA-Z]/g, "")
+    .slice(0, 5)
+    .toLowerCase();
+
+  return `${repo}-${randomLetters}`;
+};
 
 const getLatestCommit = async (owner, repo, branch) => {
   const { data: commit } = await octokit.repos.getCommit({
@@ -19,7 +27,10 @@ const getLatestCommit = async (owner, repo, branch) => {
   return commit;
 };
 
-export async function createProject(repoUrl, branch) {
+export async function createProject(prevState, formData) {
+  const repoUrl = formData.get("repoUrl");
+  const branch = formData.get("branch");
+
   try {
     const session = await getServerSession(authConfig);
 
@@ -46,13 +57,25 @@ export async function createProject(repoUrl, branch) {
     });
 
     if (user.ongoingJobId) {
+      const ongoingJob = await prisma.ongoingJob.findUnique({
+        where: {
+          id: user.ongoingJobId,
+        },
+      });
+
       return {
         sucess: false,
-        error: "You already have an ongoing job. Please wait for it to finish.",
+        ongoingJobProjectId: ongoingJob.projectId,
+        error:
+          "You already have an ongoing build job. Please wait for it to finish.",
       };
     }
 
-    // Create a new project in the database
+    const subdomain = generateSubdomain(repo);
+
+    // Generate a random avatar
+    const avatar = `https://api.dicebear.com/9.x/bottts/svg?seed=${Math.random()}`;
+
     const project = await prisma.project.create({
       data: {
         name: repo,
@@ -60,6 +83,8 @@ export async function createProject(repoUrl, branch) {
         branch: branch,
         status: "ACTIVE",
         userId: userId,
+        subdomain: subdomain,
+        avatar: avatar,
       },
     });
 

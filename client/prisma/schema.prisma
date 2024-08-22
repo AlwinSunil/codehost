@@ -29,6 +29,7 @@ model User {
 
 model Project {
   id        String        @id @default(cuid())
+  subdomain String        @unique
   name      String
   repoLink  String
   branch    String
@@ -36,6 +37,7 @@ model Project {
   userId    String
   user      User          @relation(fields: [userId], references: [id])
   tasks     Task[]
+  avatar    String
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
@@ -80,6 +82,7 @@ enum TaskStatus {
   STARTING
   BUILDING
   COMPLETED
+  DEPLOYED
   FAILED
 }
 

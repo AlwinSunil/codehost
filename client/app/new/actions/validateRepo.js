@@ -14,14 +14,20 @@ export async function validateAndFetchBranches(prevState, formData) {
       branches: branches.map((branch) => branch.name),
       url: repoUrl,
       error: null,
+      succes: true,
     };
   } catch (error) {
     if (error.status === 404) {
-      return { branches: [], error: "An invalid or prvate repository" };
+      return {
+        branches: [],
+        error: "An invalid or prvate repository",
+        succes: false,
+      };
     }
     return {
       branches: [],
       error: "An error occurred while fetching repository data",
+      succes: false,
     };
   }
 }
