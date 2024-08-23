@@ -4,13 +4,23 @@
   "description": "Frontend web app deployment for everyone",
   "scripts": {
     "format": "cd client && npm run format",
-    "dev": "cd client && npm run dev",
-    "build": "cd client && npm run build"
+    "dev:client": "cd client && npm run dev",
+    "dev:request-handler": "cd request-handler && npm run dev",
+    "build:client": "cd client && npm run build",
+    "prisma:generate": "concurrently \"cd client && npx prisma generate\" \"cd request-handler && npx prisma generate\"",
+    "prisma:migrate": "cd prisma && npx prisma migrate dev"
   },
   "repository": {
     "type": "git",
     "url": "AlwinSunil/codehost"
   },
   "author": "AlwinSunil",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prisma": "^5.18.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.18.0"
+  }
 }
