@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import pLimit from "p-limit";
+import mime from "mime-types";
 
 const AWS_REGION = process.env.AWS_REGION;
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
@@ -52,6 +53,7 @@ async function uploadFileToS3(filePath, key) {
 			Bucket: S3_BUCKET_NAME,
 			Key: key,
 			Body: fileStream,
+			ContentType: mime.lookup(filePath),
 		};
 		await s3Client.send(new PutObjectCommand(uploadParams));
 		uploadedFiles += 1;
