@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useFormState, useFormStatus } from "react-dom";
-import { validateAndFetchBranches } from "./actions/validateRepo";
-import { createProject } from "./actions/createProject";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
-import clsx from "clsx";
 import Link from "next/link";
+import clsx from "clsx";
+import { createProject } from "./actions/createProject";
+import { validateAndFetchBranches } from "./actions/validateRepo";
+import ProjectConfigurator from "./components/ProjectConfigurator";
 
 const initialStateValidation = {
   branches: [],
@@ -17,8 +18,26 @@ const initialStateValidation = {
 const initialStateCreate = {
   error: null,
   success: false,
-  ongoingJobId: null,
+  ongoingJobProjectId: null,
 };
+
+const initialConfig = {
+  buildCommand: {
+    value: "",
+    allowOverride: false,
+    placeholder: "npm run build",
+  },
+  installCommand: {
+    value: "",
+    allowOverride: false,
+    placeholder: "npm run install",
+  },
+  outputDirectory: { value: "", allowOverride: false, placeholder: "dist" },
+};
+
+const presets = [
+  { name: "Vite Js", image: "/logos/vitejs.svg", value: "vite" },
+];
 
 function ActionButton({ label, pendingLabel, disabled, ...props }) {
   const { pending } = useFormStatus();
@@ -35,21 +54,23 @@ function ActionButton({ label, pendingLabel, disabled, ...props }) {
 }
 
 export default function NewProject() {
-  const [repoUrl, setRepoUrl] = useState("");
-  const [isValidUrl, setIsValidUrl] = useState(false);
   const [currentForm, setCurrentForm] = useState("validate");
-
   const [showUrlWarning, setShowUrlWarning] = useState(false);
+  const [isValidUrl, setIsValidUrl] = useState(false);
+
+  // user input
+  const [repoUrl, setRepoUrl] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
 
-  const [validateState, validateFormAction] = useFormState(
-    validateAndFetchBranches,
-    initialStateValidation,
-  );
-  const [createProjectState, createProjectFormAction] = useFormState(
-    createProject,
-    initialStateCreate,
-  );
+  // configuration states
+  const [selectedPreset, setSelectedPreset] = useState(presets[0]);
+  const [rootDir, setRootDir] = useState("./");
+  const [projectConfig, setProjectConfig] = useState(initialConfig);
+
+  // action states
+  const [validateState, setValidateState] = useState(initialStateValidation);
+  const [createProjectState, setCreateProjectState] =
+    useState(initialStateCreate);
 
   const router = useRouter();
 
@@ -62,27 +83,25 @@ export default function NewProject() {
     const isValid = validateGithubUrl(repoUrl);
     setIsValidUrl(isValid);
     setShowUrlWarning(repoUrl !== "" && !isValid);
+
+    if (isValid) {
+      setValidateState(initialStateValidation);
+      setSelectedBranch("");
+      setCurrentForm("validate");
+    }
   }, [repoUrl]);
 
   useEffect(() => {
     if (validateState.error) {
       setCurrentForm("validate");
     } else if (validateState.branches.length > 0) {
-      setCurrentForm("create");
+      setCurrentForm("selectBranch");
     }
   }, [validateState]);
 
   const resetForm = () => {
-    // Reset form action states
-    validateFormAction.error = null;
-    validateFormAction.success = false;
-    validateFormAction.branch = null;
-
-    createProjectFormAction.error = null;
-    createProjectFormAction.success = false;
-    createProjectFormAction.ongoingJobProjectId = null;
-
-    // Reset all relevant component state variables
+    setValidateState(initialStateValidation);
+    setCreateProjectState(initialStateCreate);
     setRepoUrl("");
     setSelectedBranch("");
     setIsValidUrl(false);
@@ -90,12 +109,91 @@ export default function NewProject() {
     setCurrentForm("validate");
   };
 
+  const validateFormAction = async () => {
+    try {
+      const result = await validateAndFetchBranches(repoUrl);
+      setValidateState(result);
+      setCurrentForm("selectBranch");
+    } catch (error) {
+      setValidateState({ ...initialStateValidation, error: error.message });
+    }
+  };
+
+  const validateConfig = (config, rootDir) => {
+    const maliciousPatterns = [/;.*$/, /&&.*$/, /(\|\|)/, /(\&\&)/]; // Basic patterns for malicious content
+
+    // Check if override fields have values
+    for (const [key, { override, value }] of Object.entries(config)) {
+      if (override && !value) {
+        alert(`The field '${key}' must have a value if 'override' is true.`);
+        return null;
+      }
+    }
+
+    // Validate commands for malicious content
+    const isMalicious = (command) =>
+      maliciousPatterns.some((pattern) => pattern.test(command));
+
+    const fieldsToCheck = ["installCommand", "buildCommand", "outputDirectory"];
+    for (const field of fieldsToCheck) {
+      if (config[field]?.value && isMalicious(config[field].value)) {
+        alert(`${field} contains potentially malicious content.`);
+        return null;
+      }
+    }
+
+    const projectConfig = {
+      repo: repoUrl,
+      branch: selectedBranch,
+      rootDir,
+      buildCommand: {
+        value: config.buildCommand?.value,
+        override: config.buildCommand?.allowOverride,
+      },
+      installCommand: {
+        value: config.installCommand?.value,
+        override: config.installCommand?.allowOverride,
+      },
+      outputDirectory: {
+        value: config.outputDirectory?.value,
+        override: config.outputDirectory?.allowOverride,
+      },
+    };
+
+    return projectConfig;
+  };
+
+  const createProjectFormAction = async () => {
+    const validatedProjectConfig = validateConfig(projectConfig, rootDir);
+    if (!validatedProjectConfig) return;
+
+    console.log("Validated Project Config:", validatedProjectConfig);
+
+    // try {
+    //   const result = await createProject(repoUrl, selectedBranch);
+    //   setCreateProjectState({ ...initialStateCreate, success: true });
+    //   router.push(`/project/${result.projectId}`);
+    // } catch (error) {
+    //   setCreateProjectState({
+    //     ...initialStateCreate,
+    //     error: error.message,
+    //     ongoingJobProjectId: error.ongoingJobProjectId,
+    //   });
+    // }
+  };
+
+  const handleBranchSelection = () => {
+    if (selectedBranch) {
+      setCurrentForm("configurator");
+    }
+  };
+
   return (
     <div className="flex min-h-[calc(100vh-7rem)] flex-col gap-1 px-4 py-3 md:px-10">
       <div className="py-4">
         <h1 className="text-3xl font-bold tracking-tight">New Project</h1>
         <span className="font-sans text-gray-500">
-          To deploy a new Project, enter an existing github repo url and select
+          To deploy a new Project, enter an existing GitHub repo URL and select
           a branch.
         </span>
 
@@ -104,7 +202,7 @@ export default function NewProject() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="repo" className="font-semibold">
-                  Github Repo
+                  GitHub Repo
                 </label>
                 <input
                   type="text"
@@ -117,7 +215,7 @@ export default function NewProject() {
                     {
                       "border-red-500 focus:border-red-500 focus:ring-red-200":
                         showUrlWarning || validateState.error,
-                      "border-gray-300 focus:border-gray-500 focus:ring-blue-200":
+                      "border-gray-300 focus:border-gray-500 focus:ring-blue-300":
                         !showUrlWarning && !validateState.error && !isValidUrl,
                       "border-green-500 focus:border-green-500 focus:ring-green-200":
                         !showUrlWarning &&
@@ -125,7 +223,7 @@ export default function NewProject() {
                         !validateState.error,
                     },
                   )}
-                  placeholder="Enter Github Repo URL"
+                  placeholder="Enter GitHub Repo URL"
                 />
                 {showUrlWarning && (
                   <p className="mt-1 text-xs font-semibold text-red-500">
@@ -148,8 +246,8 @@ export default function NewProject() {
           </form>
         )}
 
-        {currentForm === "create" && (
-          <form action={createProjectFormAction} className="mt-5 max-w-96">
+        {currentForm === "selectBranch" && (
+          <div className="mt-5 max-w-96">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="repo" className="font-semibold">
@@ -166,7 +264,7 @@ export default function NewProject() {
                     {
                       "border-red-500 focus:border-red-500 focus:ring-red-200":
                         showUrlWarning || validateState.error,
-                      "border-gray-300 focus:border-gray-500 focus:ring-blue-200":
+                      "border-gray-300 focus:border-gray-500 focus:ring-blue-300":
                         !showUrlWarning && !validateState.error && !isValidUrl,
                       "border-green-500 focus:border-green-500 focus:ring-green-200":
                         !showUrlWarning &&
@@ -191,7 +289,7 @@ export default function NewProject() {
                     id="branch"
                     value={selectedBranch}
                     onChange={(e) => setSelectedBranch(e.target.value)}
-                    className="h-10 border border-gray-300 px-2 py-1.5 font-sans text-sm text-gray-800 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-200 focus:ring-offset-2"
+                    className="h-10 border border-gray-300 px-2 py-1.5 font-sans text-sm text-gray-800 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-300 focus:ring-offset-2"
                   >
                     <option value="">Select a branch</option>
                     {validateState.branches.map((branch) => (
@@ -204,35 +302,75 @@ export default function NewProject() {
               )}
             </div>
 
-            {createProjectState.error ? (
-              <>
-                <p className="mt-6 w-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-500">
-                  {createProjectState.error}
-                </p>
-                <div className="mt-6 flex justify-end gap-2">
-                  <Link
-                    href={`/project/${createProjectState.ongoingJobProjectId}`}
-                    className="inline-flex justify-center border border-black bg-white px-4 py-2 text-sm font-medium tracking-tight text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-                  >
-                    Go to on going job
-                  </Link>
-                  <button
-                    className="inline-flex justify-center border border-transparent bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
-                    onClick={resetForm}
-                  >
-                    Reset form
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="mt-4 flex justify-end">
-                <ActionButton
-                  label="Create Project"
-                  pendingLabel="Creating..."
-                />
-              </div>
-            )}
-          </form>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={handleBranchSelection}
+                className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+                disabled={!selectedBranch}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentForm === "configurator" && (
+          <>
+            <ProjectConfigurator
+              presets={presets}
+              repo={validateState.repo}
+              branch={selectedBranch}
+              preset={selectedPreset.value}
+              setPreset={(value) =>
+                setSelectedPreset(presets.find((o) => o.value === value))
+              }
+              projectConfig={projectConfig}
+              setProjectConfig={setProjectConfig}
+              rootDir={rootDir}
+              setRootDir={setRootDir}
+            />
+
+            <div className="mt-8 flex max-w-lg justify-between gap-2">
+              <button
+                type="button"
+                className="inline-flex justify-center border border-black px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2"
+                onClick={resetForm}
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                onClick={createProjectFormAction}
+              >
+                Create project
+              </button>
+            </div>
+          </>
+        )}
+
+        {createProjectState.error && (
+          <>
+            <p className="mt-8 w-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-500">
+              {createProjectState.error}
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <Link
+                href={`/project/${createProjectState.ongoingJobProjectId}`}
+                className="inline-flex justify-center border border-black bg-white px-4 py-2 text-sm font-medium tracking-tight text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+              >
+                Go to ongoing job
+              </Link>
+              <button
+                type="button"
+                className="inline-flex justify-center border border-transparent bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+                onClick={resetForm}
+              >
+                Reset form
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

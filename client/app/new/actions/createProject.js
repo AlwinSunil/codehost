@@ -27,10 +27,7 @@ const getLatestCommit = async (owner, repo, branch) => {
   return commit;
 };
 
-export async function createProject(prevState, formData) {
-  const repoUrl = formData.get("repoUrl");
-  const branch = formData.get("branch");
-
+export async function createProject(repoUrl, branch) {
   try {
     const session = await getServerSession(authConfig);
 

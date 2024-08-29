@@ -2,17 +2,14 @@
 
 import getGithubRepoAndBranch from "./helpers/getGithubRepoAndBranch";
 
-export async function validateAndFetchBranches(prevState, formData) {
-  const repoUrl = formData.get("repoUrl");
-
+export async function validateAndFetchBranches(repoUrl) {
   try {
-    const { branches } = await getGithubRepoAndBranch(repoUrl);
-
-    console.log(branches);
+    const { repo, branches } = await getGithubRepoAndBranch(repoUrl);
 
     return {
       branches: branches.map((branch) => branch.name),
       url: repoUrl,
+      repo: repo,
       error: null,
       succes: true,
     };

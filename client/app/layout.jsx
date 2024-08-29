@@ -21,7 +21,7 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${GeistMono.className} ${GeistSans.variable} min-h-screen`}
+        className={`${GeistMono.className} ${GeistSans.variable} flex min-h-screen flex-col`}
       >
         <SessionProvider session={session}>
           <Navbar />
