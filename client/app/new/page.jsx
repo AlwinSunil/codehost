@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
@@ -36,41 +35,24 @@ const initialConfig = {
 };
 
 const presets = [
-  { name: "Vite Js", image: "/logos/vitejs.svg", value: "vite" },
+  { name: "Vite Js", image: "/logos/vitejs.svg", value: "VITEJS" },
 ];
-
-function ActionButton({ label, pendingLabel, disabled, ...props }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={disabled || pending}
-      className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
-      {...props}
-    >
-      {pending ? pendingLabel : label}
-    </button>
-  );
-}
 
 export default function NewProject() {
   const [currentForm, setCurrentForm] = useState("validate");
   const [showUrlWarning, setShowUrlWarning] = useState(false);
   const [isValidUrl, setIsValidUrl] = useState(false);
-
-  // user input
   const [repoUrl, setRepoUrl] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
-
-  // configuration states
+  const [validateState, setValidateState] = useState(initialStateValidation);
+  const [createProjectState, setCreateProjectState] =
+    useState(initialStateCreate);
   const [selectedPreset, setSelectedPreset] = useState(presets[0]);
   const [rootDir, setRootDir] = useState("./");
   const [projectConfig, setProjectConfig] = useState(initialConfig);
 
-  // action states
-  const [validateState, setValidateState] = useState(initialStateValidation);
-  const [createProjectState, setCreateProjectState] =
-    useState(initialStateCreate);
+  const [isValidating, setIsValidating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const router = useRouter();
 
@@ -83,7 +65,6 @@ export default function NewProject() {
     const isValid = validateGithubUrl(repoUrl);
     setIsValidUrl(isValid);
     setShowUrlWarning(repoUrl !== "" && !isValid);
-
     if (isValid) {
       setValidateState(initialStateValidation);
       setSelectedBranch("");
@@ -99,36 +80,14 @@ export default function NewProject() {
     }
   }, [validateState]);
 
-  const resetForm = () => {
-    setValidateState(initialStateValidation);
-    setCreateProjectState(initialStateCreate);
-    setRepoUrl("");
-    setSelectedBranch("");
-    setIsValidUrl(false);
-    setShowUrlWarning(false);
-    setCurrentForm("validate");
-  };
-
-  const validateFormAction = async () => {
-    try {
-      const result = await validateAndFetchBranches(repoUrl);
-      setValidateState(result);
-      setCurrentForm("selectBranch");
-    } catch (error) {
-      setValidateState({ ...initialStateValidation, error: error.message });
+  const handleBranchSelection = () => {
+    if (selectedBranch) {
+      setCurrentForm("configurator");
     }
   };
 
   const validateConfig = (config, rootDir) => {
     const maliciousPatterns = [/;.*$/, /&&.*$/, /(\|\|)/, /(\&\&)/]; // Basic patterns for malicious content
-
-    // Check if override fields have values
-    for (const [key, { override, value }] of Object.entries(config)) {
-      if (override && !value) {
-        alert(`The field '${key}' must have a value if 'override' is true.`);
-        return null;
-      }
-    }
 
     // Validate commands for malicious content
     const isMalicious = (command) =>
@@ -142,196 +101,220 @@ export default function NewProject() {
       }
     }
 
-    const projectConfig = {
-      repo: repoUrl,
-      branch: selectedBranch,
-      rootDir,
-      buildCommand: {
-        value: config.buildCommand?.value,
-        override: config.buildCommand?.allowOverride,
-      },
-      installCommand: {
-        value: config.installCommand?.value,
-        override: config.installCommand?.allowOverride,
-      },
-      outputDirectory: {
-        value: config.outputDirectory?.value,
-        override: config.outputDirectory?.allowOverride,
-      },
-    };
+    // Check if override fields have values
+    for (const [key, { override, value }] of Object.entries(config)) {
+      if (override && !value) {
+        alert(`The field '${key}' must have a value if 'override' is true.`);
+        return null;
+      }
+    }
 
-    return projectConfig;
+    return config;
+  };
+
+  const validateFormAction = async () => {
+    setIsValidating(true);
+
+    try {
+      const result = await validateAndFetchBranches(repoUrl);
+      setValidateState(result);
+      setCurrentForm("selectBranch");
+    } catch (error) {
+      setValidateState({ ...initialStateValidation, error: error.message });
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const createProjectFormAction = async () => {
     const validatedProjectConfig = validateConfig(projectConfig, rootDir);
     if (!validatedProjectConfig) return;
 
-    console.log("Validated Project Config:", validatedProjectConfig);
+    console.log(validatedProjectConfig);
+    setIsCreating(true);
 
-    // try {
-    //   const result = await createProject(repoUrl, selectedBranch);
-    //   setCreateProjectState({ ...initialStateCreate, success: true });
-    //   router.push(`/project/${result.projectId}`);
-    // } catch (error) {
-    //   setCreateProjectState({
-    //     ...initialStateCreate,
-    //     error: error.message,
-    //     ongoingJobProjectId: error.ongoingJobProjectId,
-    //   });
-    // }
-  };
-
-  const handleBranchSelection = () => {
-    if (selectedBranch) {
-      setCurrentForm("configurator");
+    try {
+      const projectPreset = selectedPreset.value;
+      const result = await createProject(
+        repoUrl,
+        selectedBranch,
+        validatedProjectConfig,
+        projectPreset,
+      );
+      if (result.success) {
+        router.push(`/project/${result.id}`);
+      } else {
+        setCreateProjectState({
+          ...initialStateCreate,
+          error: result.error,
+          ongoingJobProjectId: result.ongoingJobProjectId,
+        });
+      }
+    } catch (error) {
+      setCreateProjectState({
+        ...initialStateCreate,
+        error: error.message,
+      });
+    } finally {
+      setIsCreating(false); // Set loading state to false when action ends
     }
   };
 
+  const resetForm = () => {
+    setValidateState(initialStateValidation);
+    setCreateProjectState(initialStateCreate);
+    setRepoUrl("");
+    setSelectedBranch("");
+    setIsValidUrl(false);
+    setShowUrlWarning(false);
+    setCurrentForm("validate");
+  };
+
   return (
-    <div className="flex min-h-[calc(100vh-7rem)] flex-col gap-1 px-4 py-3 md:px-10">
-      <div className="py-4">
+    <div className="mb-8 flex min-h-[calc(100vh-7rem)] flex-col gap-1 px-4 py-3 md:px-10">
+      <div className="py-5">
         <h1 className="text-3xl font-bold tracking-tight">New Project</h1>
         <span className="font-sans text-gray-500">
           To deploy a new Project, enter an existing GitHub repo URL and select
           a branch.
         </span>
+      </div>
 
-        {currentForm === "validate" && (
-          <form action={validateFormAction} className="mt-5 max-w-96">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="repo" className="font-semibold">
-                  GitHub Repo
-                </label>
-                <input
-                  type="text"
-                  id="repo"
-                  name="repoUrl"
-                  value={repoUrl}
-                  onChange={(e) => setRepoUrl(e.target.value)}
-                  className={clsx(
-                    "h-10 w-full border px-3 py-1.5 font-sans text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-offset-2",
-                    {
-                      "border-red-500 focus:border-red-500 focus:ring-red-200":
-                        showUrlWarning || validateState.error,
-                      "border-gray-300 focus:border-gray-500 focus:ring-blue-300":
-                        !showUrlWarning && !validateState.error && !isValidUrl,
-                      "border-green-500 focus:border-green-500 focus:ring-green-200":
-                        !showUrlWarning &&
-                        validateState.branches.length > 0 &&
-                        !validateState.error,
-                    },
-                  )}
-                  placeholder="Enter GitHub Repo URL"
-                />
-                {showUrlWarning && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">
-                    Please enter a valid GitHub repository URL
-                  </p>
+      {currentForm === "validate" && (
+        <form action={validateFormAction} className="mt-2 max-w-96">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="repo" className="font-semibold">
+                GitHub Repo
+              </label>
+              <input
+                type="text"
+                id="repo"
+                name="repoUrl"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                className={clsx(
+                  "h-10 w-full border px-3 py-1.5 font-sans text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-offset-2",
+                  {
+                    "border-red-500 focus:border-red-500 focus:ring-red-200":
+                      showUrlWarning || validateState.error,
+                    "border-gray-300 focus:border-gray-500 focus:ring-blue-300":
+                      !showUrlWarning && !validateState.error && !isValidUrl,
+                    "border-green-500 focus:border-green-500 focus:ring-green-200":
+                      !showUrlWarning &&
+                      validateState.branches.length > 0 &&
+                      !validateState.error,
+                  },
                 )}
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <ActionButton
-                label="Validate Repo"
-                pendingLabel="Validating..."
+                placeholder="Enter GitHub Repo URL"
               />
-            </div>
-            {validateState.error && (
-              <p className="mt-6 w-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-500">
-                {validateState.error}
-              </p>
-            )}
-          </form>
-        )}
-
-        {currentForm === "selectBranch" && (
-          <div className="mt-5 max-w-96">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="repo" className="font-semibold">
-                  Github Repo
-                </label>
-                <input
-                  type="text"
-                  id="repo"
-                  name="repoUrl"
-                  value={repoUrl}
-                  onChange={(e) => setRepoUrl(e.target.value)}
-                  className={clsx(
-                    "h-10 w-full border px-3 py-1.5 font-sans text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-offset-2",
-                    {
-                      "border-red-500 focus:border-red-500 focus:ring-red-200":
-                        showUrlWarning || validateState.error,
-                      "border-gray-300 focus:border-gray-500 focus:ring-blue-300":
-                        !showUrlWarning && !validateState.error && !isValidUrl,
-                      "border-green-500 focus:border-green-500 focus:ring-green-200":
-                        !showUrlWarning &&
-                        validateState.branches.length > 0 &&
-                        !validateState.error,
-                    },
-                  )}
-                  placeholder="Enter Github Repo URL"
-                />
-                {showUrlWarning && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">
-                    Please enter a valid GitHub repository URL
-                  </p>
-                )}
-              </div>
-              {validateState.branches.length > 0 && (
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="branch" className="text-sm font-medium">
-                    Branch
-                  </label>
-                  <select
-                    id="branch"
-                    value={selectedBranch}
-                    onChange={(e) => setSelectedBranch(e.target.value)}
-                    className="h-10 border border-gray-300 px-2 py-1.5 font-sans text-sm text-gray-800 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-300 focus:ring-offset-2"
-                  >
-                    <option value="">Select a branch</option>
-                    {validateState.branches.map((branch) => (
-                      <option key={branch} value={branch}>
-                        {branch}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {showUrlWarning && (
+                <p className="mt-1 text-xs font-semibold text-red-500">
+                  Please enter a valid GitHub repository URL
+                </p>
               )}
             </div>
-
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={handleBranchSelection}
-                className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
-                disabled={!selectedBranch}
-              >
-                Next
-              </button>
-            </div>
           </div>
-        )}
+          <div className="mt-4 flex justify-end">
+            <button
+              type="submit"
+              className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+              disabled={isValidating}
+            >
+              {isValidating ? "Validating..." : "Validate Repo"}
+            </button>
+          </div>
+          {validateState.error && (
+            <p className="mt-6 w-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-500">
+              {validateState.error}
+            </p>
+          )}
+        </form>
+      )}
 
-        {currentForm === "configurator" && (
-          <>
-            <ProjectConfigurator
-              presets={presets}
-              repo={validateState.repo}
-              branch={selectedBranch}
-              preset={selectedPreset.value}
-              setPreset={(value) =>
-                setSelectedPreset(presets.find((o) => o.value === value))
-              }
-              projectConfig={projectConfig}
-              setProjectConfig={setProjectConfig}
-              rootDir={rootDir}
-              setRootDir={setRootDir}
-            />
+      {currentForm === "selectBranch" && (
+        <div className="mt-4 max-w-96">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="repo" className="font-semibold">
+                Github Repo
+              </label>
+              <input
+                type="text"
+                id="repo"
+                name="repoUrl"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                className={clsx(
+                  "h-10 w-full border px-3 py-1.5 font-sans text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-offset-2",
+                  {
+                    "border-red-500 focus:border-red-500 focus:ring-red-200":
+                      showUrlWarning || validateState.error,
+                    "border-gray-300 focus:border-gray-500 focus:ring-blue-300":
+                      !showUrlWarning && !validateState.error && !isValidUrl,
+                    "border-green-500 focus:border-green-500 focus:ring-green-200":
+                      !showUrlWarning &&
+                      validateState.branches.length > 0 &&
+                      !validateState.error,
+                  },
+                )}
+                placeholder="Enter Github Repo URL"
+              />
+              {showUrlWarning && (
+                <p className="mt-1 text-xs font-semibold text-red-500">
+                  Please enter a valid GitHub repository URL
+                </p>
+              )}
+            </div>
+            {validateState.branches.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="branch" className="text-sm font-medium">
+                  Branch
+                </label>
+                <select
+                  id="branch"
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  className="h-10 border border-gray-300 px-2 py-1.5 font-sans text-sm text-gray-800 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-300 focus:ring-offset-2"
+                >
+                  <option value="">Select a branch</option>
+                  {validateState.branches.map((branch) => (
+                    <option key={branch} value={branch}>
+                      {branch}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={handleBranchSelection}
+              className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+              disabled={!selectedBranch}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
-            <div className="mt-8 flex max-w-lg justify-between gap-2">
+      {currentForm === "configurator" && (
+        <>
+          <ProjectConfigurator
+            presets={presets}
+            repo={validateState.repo}
+            branch={selectedBranch}
+            preset={selectedPreset}
+            setPreset={(preset) => setSelectedPreset(preset)}
+            projectConfig={projectConfig}
+            setProjectConfig={setProjectConfig}
+            rootDir={rootDir}
+            setRootDir={setRootDir}
+          />
+          {!createProjectState.error && (
+            <div className="mt-4 flex max-w-lg justify-between gap-2">
               <button
                 type="button"
                 className="inline-flex justify-center border border-black px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2"
@@ -341,38 +324,39 @@ export default function NewProject() {
               </button>
               <button
                 type="button"
-                className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
                 onClick={createProjectFormAction}
+                disabled={isCreating}
               >
-                Create project
+                {isCreating ? "Creating Project..." : "Create Project"}
               </button>
             </div>
-          </>
-        )}
+          )}
+        </>
+      )}
 
-        {createProjectState.error && (
-          <>
-            <p className="mt-8 w-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-500">
-              {createProjectState.error}
-            </p>
-            <div className="mt-6 flex justify-end gap-2">
-              <Link
-                href={`/project/${createProjectState.ongoingJobProjectId}`}
-                className="inline-flex justify-center border border-black bg-white px-4 py-2 text-sm font-medium tracking-tight text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-              >
-                Go to ongoing job
-              </Link>
-              <button
-                type="button"
-                className="inline-flex justify-center border border-transparent bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
-                onClick={resetForm}
-              >
-                Reset form
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+      {createProjectState.error && (
+        <div className="mb-6 max-w-lg">
+          <p className="mt-8 w-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-500">
+            {createProjectState.error}
+          </p>
+          <div className="mt-6 flex justify-end gap-2">
+            <Link
+              href={`/project/${createProjectState.ongoingJobProjectId}`}
+              className="inline-flex justify-center border border-black bg-white px-4 py-2 text-sm font-medium tracking-tight text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+            >
+              Go to ongoing job
+            </Link>
+            <button
+              type="button"
+              className="inline-flex justify-center border border-transparent bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+              onClick={resetForm}
+            >
+              Reset form
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

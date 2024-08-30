@@ -13,7 +13,6 @@ const generateSubdomain = (repo) => {
     .replace(/[^a-zA-Z]/g, "")
     .slice(0, 5)
     .toLowerCase();
-
   return `${repo}-${randomLetters}`;
 };
 
@@ -23,102 +22,126 @@ const getLatestCommit = async (owner, repo, branch) => {
     repo,
     ref: branch,
   });
-
   return commit;
 };
 
-export async function createProject(repoUrl, branch) {
+const presets = {
+  VITEJS: {
+    installCommand: "npm install",
+    buildCommand: "npm run build",
+    outputDirectory: "dist",
+  },
+  // Add more presets as needed
+};
+
+export async function createProject(
+  repoUrl,
+  branch,
+  projectConfig,
+  projectPreset,
+) {
   try {
     const session = await getServerSession(authConfig);
-
     if (!session || !session.user) {
-      return { sucess: false, error: "User not authenticated" };
+      return { success: false, error: "User not authenticated" };
     }
 
     const userId = session.user.id;
     const [, , , owner, repo] = repoUrl.split("/");
 
     let latestCommit;
-
     try {
       latestCommit = await getLatestCommit(owner, repo, branch);
     } catch (error) {
       console.error("Error getting latest commit:", error);
-      return { sucess: false, error: "Invalid repository or branch" };
+      return { success: false, error: "Invalid repository or branch" };
+    }
+
+    const subdomain = generateSubdomain(repo);
+    const avatar = `https://api.dicebear.com/9.x/bottts/svg?seed=${Math.random()}`;
+
+    const installCommand = projectConfig.installCommand.allowOverride
+      ? projectConfig.installCommand.value
+      : presets[projectPreset]?.installCommand;
+
+    const buildCommand = projectConfig.buildCommand.allowOverride
+      ? projectConfig.buildCommand.value
+      : presets[projectPreset]?.buildCommand;
+
+    const outputDirectory = projectConfig.outputDirectory.allowOverride
+      ? projectConfig.outputDirectory.value
+      : presets[projectPreset]?.outputDirectory;
+
+    if (!installCommand || !buildCommand || !outputDirectory) {
+      throw new Error("Missing required commands for project setup.");
     }
 
     const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
+      where: { id: userId },
     });
+
+    if (!user) {
+      throw new Error("User not found.");
+    }
 
     if (user.ongoingJobId) {
       const ongoingJob = await prisma.ongoingJob.findUnique({
-        where: {
-          id: user.ongoingJobId,
-        },
+        where: { id: user.ongoingJobId },
       });
-
       return {
-        sucess: false,
+        success: false,
         ongoingJobProjectId: ongoingJob.projectId,
         error:
           "You already have an ongoing build job. Please wait for it to finish.",
       };
     }
 
-    const subdomain = generateSubdomain(repo);
+    return await prisma.$transaction(async (prisma) => {
+      const project = await prisma.project.create({
+        data: {
+          name: repo,
+          repoLink: repoUrl,
+          branch,
+          status: "ACTIVE",
+          userId,
+          subdomain,
+          avatar,
+          preset: projectPreset,
+          installCommand,
+          buildCommand,
+          outputDir: outputDirectory,
+        },
+      });
 
-    // Generate a random avatar
-    const avatar = `https://api.dicebear.com/9.x/bottts/svg?seed=${Math.random()}`;
+      const task = await prisma.task.create({
+        data: {
+          status: "ON_QUEUE",
+          commitHash: latestCommit.sha,
+          commitMessage: latestCommit.commit.message,
+          userId,
+          projectId: project.id,
+          completedAt: null,
+        },
+      });
 
-    const project = await prisma.project.create({
-      data: {
-        name: repo,
-        repoLink: repoUrl,
-        branch: branch,
-        status: "ACTIVE",
-        userId: userId,
-        subdomain: subdomain,
-        avatar: avatar,
-      },
+      const ongoingJob = await prisma.ongoingJob.create({
+        data: {
+          taskId: task.id,
+          projectId: project.id,
+        },
+      });
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { ongoingJobId: ongoingJob.id },
+      });
+
+      await addJobToBuildQueue(task.id, repoUrl, branch, userId);
+
+      return { success: true, id: project.id };
     });
-
-    // Create a new task in the database
-    const task = await prisma.task.create({
-      data: {
-        status: "ON_QUEUE",
-        commitHash: latestCommit.sha,
-        commitMessage: latestCommit.commit.message,
-        userId: userId,
-        projectId: project.id,
-        completedAt: null,
-      },
-    });
-
-    // Add the job to the AWS queue
-    await addJobToBuildQueue(task.id, repoUrl, branch, userId);
-
-    const ongoingJob = await prisma.ongoingJob.create({
-      data: {
-        taskId: task.id,
-        projectId: project.id,
-      },
-    });
-
-    await prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        ongoingJobId: ongoingJob.id,
-      },
-    });
-
-    return { sucess: true, id: project.id };
   } catch (error) {
-    console.error("Error adding job to queue:", error);
-    return { sucess: false, error: error.message };
+    console.error("Error creating project:", error);
+    return { success: false, error: error.message };
   }
 }

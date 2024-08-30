@@ -12,7 +12,7 @@ export default async function Home() {
   return (
     <main className="flex flex-col justify-center gap-1.5 px-4 py-28 md:px-10">
       <h1 className="text-4xl font-bold tracking-tighter">
-        Deploy your frontend code with ease
+        Deploy your frontend with ease
       </h1>
       <span className="mb-2 flex items-center justify-between text-gray-700">
         Sign in with github to get started

@@ -59,7 +59,7 @@ export default async function DashboardHome() {
         </Link>
       </div>
       <hr />
-      <h1 className="col-span-3 mt-5 font-sans text-2xl font-semibold">
+      <h1 className="col-span-3 mt-4 font-sans text-2xl font-semibold">
         Your Projects
       </h1>
       <div className="grid grid-cols-1 gap-3 py-3 md:grid-cols-2 lg:grid-cols-3">
