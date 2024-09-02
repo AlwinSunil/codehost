@@ -1,16 +1,30 @@
+const queueUrl = process.env.AWS_BUILD_SQS_URL;
 const { SendMessageCommand } = require("@aws-sdk/client-sqs");
 const { sqsClient } = require("@/lib/aws");
 
-const queueUrl = process.env.AWS_BUILD_SQS_URL;
-
-export async function addJobToBuildQueue(taskId, repoUrl, branch, userId) {
+export async function addJobToBuildQueue(
+  taskId,
+  projectId,
+  userId,
+  repoUrl,
+  branch,
+  preset,
+  installCommand,
+  buildCommand,
+  outputDir,
+) {
   try {
     // Prepare the message to be sent to the queue
     const message = {
       taskId,
+      projectId,
+      userId,
       repoUrl,
       branch,
-      userId,
+      preset,
+      installCommand,
+      buildCommand,
+      outputDir,
     };
 
     console.log("Message:", message);
@@ -24,6 +38,14 @@ export async function addJobToBuildQueue(taskId, repoUrl, branch, userId) {
           DataType: "String",
           StringValue: taskId,
         },
+        ProjectId: {
+          DataType: "String",
+          StringValue: projectId,
+        },
+        UserId: {
+          DataType: "String",
+          StringValue: userId,
+        },
         RepoUrl: {
           DataType: "String",
           StringValue: repoUrl,
@@ -32,9 +54,21 @@ export async function addJobToBuildQueue(taskId, repoUrl, branch, userId) {
           DataType: "String",
           StringValue: branch,
         },
-        UserId: {
+        Preset: {
           DataType: "String",
-          StringValue: userId,
+          StringValue: preset,
+        },
+        InstallCommand: {
+          DataType: "String",
+          StringValue: installCommand,
+        },
+        BuildCommand: {
+          DataType: "String",
+          StringValue: buildCommand,
+        },
+        OutputDir: {
+          DataType: "String",
+          StringValue: outputDir,
         },
       },
       MessageGroupId: `user-${userId}`,

@@ -41,12 +41,14 @@ export default async function Project({ params }) {
   return (
     <div className="flex min-h-[calc(100vh-7rem)] flex-col gap-1 px-4 py-3 md:px-10">
       <ProjectHeader project={project} />
-      <div className="flex items-center gap-4 border-b px-4 py-2">
-        <span className="mb-0.5 border-r text-base font-medium capitalize leading-4 tracking-tight">
-          Latest task
+      <div className="flex items-center border">
+        <span className="w-fit border-r py-2 pl-4 text-base font-semibold capitalize leading-5 tracking-tight">
+          On going deployment
         </span>
-        <div className="flex w-full items-center justify-between gap-4 px-4 py-2 md:px-10">
-          <p className="text-sm">{latestTask.id.slice(0, 6)}</p>
+        <div className="group flex w-full items-center justify-between gap-4 px-4 py-6 hover:cursor-pointer hover:bg-gray-50 md:px-10">
+          <p className="text-sm group-hover:underline">
+            {latestTask.id.slice(0, 6)}
+          </p>
           <p className="rounded-sm border border-gray-200 bg-gray-100 px-2 text-sm font-semibold tracking-tight shadow-inner">
             {latestTask.status}
           </p>
@@ -56,7 +58,7 @@ export default async function Project({ params }) {
                 addSuffix: true,
               })}
             </span>
-            <p className="rounded-full border px-2 font-sans text-xs text-gray-600">
+            <p className="rounded-full border bg-white px-2 font-sans text-xs text-gray-600">
               {new Date(latestTask.startedAt).toLocaleString("en-US", {
                 year: "numeric",
                 month: "short",

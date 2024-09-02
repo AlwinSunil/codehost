@@ -136,7 +136,17 @@ export async function createProject(
         data: { ongoingJobId: ongoingJob.id },
       });
 
-      await addJobToBuildQueue(task.id, repoUrl, branch, userId);
+      await addJobToBuildQueue(
+        task.id,
+        project.id,
+        userId,
+        repoUrl,
+        branch,
+        projectPreset,
+        installCommand,
+        buildCommand,
+        outputDirectory,
+      );
 
       return { success: true, id: project.id };
     });
