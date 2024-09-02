@@ -1,6 +1,6 @@
 import { SQSClient, DeleteMessageCommand } from "@aws-sdk/client-sqs";
 import { ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs";
-import { prisma } from "./lib/prisma.js";
+import prisma from "./lib/prisma.mjs";
 
 const sqs = new SQSClient();
 const ecs = new ECSClient();
@@ -29,12 +29,12 @@ const startBuildTaskContainer = async (taskData) => {
 	// Run ECS EC2 task
 	const runTaskParams = {
 		cluster: clusterArn,
-		taskDefinition: "codehost-build-container", // Replace with your task definition
-		launchType: "EC2", // Changed from FARGATE to EC2
+		taskDefinition: "codehost-build-container",
+		launchType: "EC2",
 		overrides: {
 			containerOverrides: [
 				{
-					name: `${taskData.TaskId}-build`, // Replace with your container name
+					name: `${taskData.TaskId}-build`,
 					environment: [
 						{ name: "PROJECT_ID", value: taskData.ProjectId },
 						{ name: "REPO_URL", value: taskData.RepoUrl },
@@ -50,12 +50,6 @@ const startBuildTaskContainer = async (taskData) => {
 				},
 			],
 		},
-		networkConfiguration: {
-			awsvpcConfiguration: {
-				subnets: ["your-subnet-id"], // Replace with your subnet ID
-				assignPublicIp: "ENABLED",
-			},
-		},
 	};
 
 	try {
@@ -65,11 +59,22 @@ const startBuildTaskContainer = async (taskData) => {
 		console.log("ECS EC2 task started:", runTaskResponse.tasks[0].taskArn);
 	} catch (error) {
 		console.error("Error starting ECS EC2 task:", error);
-		// Update task status to FAILED in the database
 		await prisma.task.update({
 			where: { id: taskData.TaskId },
 			data: { status: "FAILED" },
 		});
+		const deleteParams = {
+			QueueUrl: queueUrl,
+			ReceiptHandle: record.receiptHandle,
+		};
+
+		try {
+			await sqs.send(new DeleteMessageCommand(deleteParams));
+			console.log("Message processed and deleted.");
+		} catch (error) {
+			console.error("Error deleting message:", error);
+		}
+
 		throw error;
 	}
 };
@@ -90,18 +95,6 @@ export const handler = async (event) => {
 		};
 
 		await startBuildTaskContainer(taskData);
-
-		const deleteParams = {
-			QueueUrl: queueUrl,
-			ReceiptHandle: record.receiptHandle,
-		};
-
-		try {
-			await sqs.send(new DeleteMessageCommand(deleteParams));
-			console.log("Message processed and deleted.");
-		} catch (error) {
-			console.error("Error deleting message:", error);
-		}
 	}
 
 	await prisma.$disconnect();
