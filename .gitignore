@@ -20,6 +20,8 @@ out/
 # misc
 .DS_Store
 *.pem
+.vscode
+**/*.zip
 
 # debug
 npm-debug.log*
