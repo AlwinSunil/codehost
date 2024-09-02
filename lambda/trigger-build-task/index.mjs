@@ -1,6 +1,6 @@
 import { SQSClient, DeleteMessageCommand } from "@aws-sdk/client-sqs";
 import { ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs";
-import prisma from "./lib/prisma.mjs";
+import { db } from "@vercel/postgres";
 
 const sqs = new SQSClient();
 const ecs = new ECSClient();
@@ -8,7 +8,24 @@ const ecs = new ECSClient();
 const queueUrl = process.env.SQS_QUEUE_URL;
 const clusterArn = process.env.CLUSTER_ARN;
 
-const startBuildTaskContainer = async (taskData) => {
+let client;
+
+const initDb = async () => {
+	if (!client) {
+		client = await db.connect();
+	}
+};
+
+const updateTaskStatus = async (taskId, status) => {
+	try {
+		await client.sql`UPDATE "Task" SET status = ${status} WHERE id = ${taskId}`;
+	} catch (error) {
+		console.error(`Failed to update status for task ${taskId}:`, error);
+		throw error;
+	}
+};
+
+const startBuildTaskContainer = async (taskData, receiptHandle) => {
 	console.log(`Starting container process for task: ${taskData.TaskId}`);
 	console.log(`${taskData.RepoUrl} | ${taskData.Branch}`);
 	console.log(
@@ -18,23 +35,16 @@ const startBuildTaskContainer = async (taskData) => {
 		`${taskData.Preset} | ${taskData.InstallCommand} | ${taskData.BuildCommand} | ${taskData.OutputDir}`
 	);
 	console.log(`Build Command: ${taskData.BuildCommand}`);
-	console.log("Container process started successfully");
-
-	// Update task status in the database
-	await prisma.task.update({
-		where: { id: taskData.TaskId },
-		data: { status: "STARTING" },
-	});
 
 	// Run ECS EC2 task
 	const runTaskParams = {
 		cluster: clusterArn,
-		taskDefinition: "codehost-build-container",
+		taskDefinition: "codehost-build-task",
 		launchType: "EC2",
 		overrides: {
 			containerOverrides: [
 				{
-					name: `${taskData.TaskId}-build`,
+					name: "codehost-build-container",
 					environment: [
 						{ name: "PROJECT_ID", value: taskData.ProjectId },
 						{ name: "REPO_URL", value: taskData.RepoUrl },
@@ -45,7 +55,7 @@ const startBuildTaskContainer = async (taskData) => {
 							value: taskData.InstallCommand,
 						},
 						{ name: "BUILD_COMMAND", value: taskData.BuildCommand },
-						{ name: "OUTPUT_DIR", value: taskData.OutputDir },
+						{ name: "BUILD_DIR", value: taskData.OutputDir },
 					],
 				},
 			],
@@ -59,20 +69,21 @@ const startBuildTaskContainer = async (taskData) => {
 		console.log("ECS EC2 task started:", runTaskResponse.tasks[0].taskArn);
 	} catch (error) {
 		console.error("Error starting ECS EC2 task:", error);
-		await prisma.task.update({
-			where: { id: taskData.TaskId },
-			data: { status: "FAILED" },
-		});
+
+		// Update task status in the database to 'FAILED'
+		await updateTaskStatus(taskData.TaskId, "FAILED");
+
+		// Delete the message from the queue
 		const deleteParams = {
 			QueueUrl: queueUrl,
-			ReceiptHandle: record.receiptHandle,
+			ReceiptHandle: receiptHandle,
 		};
 
 		try {
 			await sqs.send(new DeleteMessageCommand(deleteParams));
 			console.log("Message processed and deleted.");
-		} catch (error) {
-			console.error("Error deleting message:", error);
+		} catch (deleteError) {
+			console.error("Error deleting message:", deleteError);
 		}
 
 		throw error;
@@ -80,6 +91,8 @@ const startBuildTaskContainer = async (taskData) => {
 };
 
 export const handler = async (event) => {
+	await initDb();
+
 	for (const record of event.Records) {
 		const messageAttributes = record.messageAttributes;
 		const taskData = {
@@ -94,10 +107,12 @@ export const handler = async (event) => {
 			OutputDir: messageAttributes.OutputDir.stringValue,
 		};
 
-		await startBuildTaskContainer(taskData);
-	}
+		// Update task status to 'STARTING'
+		await updateTaskStatus(taskData.TaskId, "STARTING");
 
-	await prisma.$disconnect();
+		// Start the ECS task
+		await startBuildTaskContainer(taskData, record.receiptHandle);
+	}
 
 	return {
 		statusCode: 200,
