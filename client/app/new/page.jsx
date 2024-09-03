@@ -97,7 +97,7 @@ export default function NewProject() {
     for (const field of fieldsToCheck) {
       if (config[field]?.value && isMalicious(config[field].value)) {
         alert(`${field} contains potentially malicious content.`);
-        return null;
+        return { config: null, rootDir };
       }
     }
 
@@ -105,11 +105,25 @@ export default function NewProject() {
     for (const [key, { override, value }] of Object.entries(config)) {
       if (override && !value) {
         alert(`The field '${key}' must have a value if 'override' is true.`);
-        return null;
+        return { config: null, rootDir };
       }
     }
 
-    return config;
+    // Validate rootDir
+    const invalidChars = /[<>:"/\\|?*]/; // Characters not allowed in directory names
+    if (invalidChars.test(rootDir)) {
+      alert("The specified rootDir contains invalid characters.");
+      return { config: null, rootDir: null };
+    }
+
+    // Check for common path traversal patterns
+    const pathTraversalPatterns = [/(\.\.\/)+/, /(\.\.\\)+/];
+    if (pathTraversalPatterns.some((pattern) => pattern.test(rootDir))) {
+      alert("The specified rootDir contains potentially unsafe path patterns.");
+      return { config: null, rootDir: null };
+    }
+
+    return { config, rootDir };
   };
 
   const validateFormAction = async () => {
@@ -127,10 +141,13 @@ export default function NewProject() {
   };
 
   const createProjectFormAction = async () => {
-    const validatedProjectConfig = validateConfig(projectConfig, rootDir);
-    if (!validatedProjectConfig) return;
+    const { config, rootDir } = validateConfig(projectConfig, rootDir);
 
-    console.log(validatedProjectConfig);
+    if (!config) return;
+    if (!rootDir) return;
+
+    console.log(config, rootDir);
+
     setIsCreating(true);
 
     try {
@@ -138,8 +155,9 @@ export default function NewProject() {
       const result = await createProject(
         repoUrl,
         selectedBranch,
-        validatedProjectConfig,
+        rootDir,
         projectPreset,
+        config,
       );
       if (result.success) {
         router.push(`/project/${result.id}`);

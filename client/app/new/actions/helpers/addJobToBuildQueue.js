@@ -8,6 +8,7 @@ export async function addJobToBuildQueue(
   userId,
   repoUrl,
   branch,
+  rootDir,
   preset,
   installCommand,
   buildCommand,
@@ -21,6 +22,7 @@ export async function addJobToBuildQueue(
       userId,
       repoUrl,
       branch,
+      rootDir,
       preset,
       installCommand,
       buildCommand,
@@ -53,6 +55,10 @@ export async function addJobToBuildQueue(
         Branch: {
           DataType: "String",
           StringValue: branch,
+        },
+        RootDir: {
+          DataType: "String",
+          StringValue: rootDir,
         },
         Preset: {
           DataType: "String",

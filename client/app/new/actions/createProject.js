@@ -37,8 +37,9 @@ const presets = {
 export async function createProject(
   repoUrl,
   branch,
-  projectConfig,
+  rootDir,
   projectPreset,
+  projectConfig,
 ) {
   try {
     const session = await getServerSession(authConfig);
@@ -106,6 +107,7 @@ export async function createProject(
           userId,
           subdomain,
           avatar,
+          rootDir,
           preset: projectPreset,
           installCommand,
           buildCommand,
@@ -142,6 +144,7 @@ export async function createProject(
         userId,
         repoUrl,
         branch,
+        rootDir,
         projectPreset,
         installCommand,
         buildCommand,

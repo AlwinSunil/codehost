@@ -39,6 +39,7 @@ model Project {
   tasks     Task[]
   avatar    String
 
+  rootDir        String
   preset         Preset
   installCommand String
   buildCommand   String

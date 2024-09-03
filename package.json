@@ -7,9 +7,9 @@
     "dev:client": "cd client && npm run dev",
     "dev:request-handler": "cd request-handler && npm run dev",
     "build:client": "cd client && npm run build",
-    "prisma:generate": "concurrently \"cd client && npx prisma generate\" \"cd request-handler && npx prisma generate\"",
-    "prisma:migrate": "cd prisma && npx prisma migrate dev",
-    "prisma:studio": "cd prisma && npx prisma studio"
+    "prisma:generate": "cd client && npx prisma generate",
+    "prisma:migrate": "cd client && npx prisma migrate dev",
+    "prisma:studio": "cd client && npx prisma studio"
   },
   "repository": {
     "type": "git",
@@ -18,10 +18,6 @@
   "author": "AlwinSunil",
   "license": "ISC",
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "prisma": "^5.19.0"
-  },
-  "dependencies": {
-    "@prisma/client": "^5.19.0"
+    "concurrently": "^8.2.2"
   }
 }
