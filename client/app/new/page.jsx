@@ -111,7 +111,11 @@ export default function NewProject() {
 
     // Validate rootDir
     const invalidChars = /[<>:"/\\|?*]/; // Characters not allowed in directory names
-    if (invalidChars.test(rootDir)) {
+
+    // Special case: Allow `./`, `../`, and paths with valid characters
+    const allowedPathPattern = /^(\.|\/|\w+)*$/; // Allow relative paths and valid directory names
+
+    if (invalidChars.test(rootDir) && !allowedPathPattern.test(rootDir)) {
       alert("The specified rootDir contains invalid characters.");
       return { config: null, rootDir: null };
     }
@@ -141,12 +145,15 @@ export default function NewProject() {
   };
 
   const createProjectFormAction = async () => {
-    const { config, rootDir } = validateConfig(projectConfig, rootDir);
+    const { config, rootDir: validatedRootDir } = validateConfig(
+      projectConfig,
+      rootDir,
+    );
 
     if (!config) return;
-    if (!rootDir) return;
+    if (!validatedRootDir) return;
 
-    console.log(config, rootDir);
+    console.log(config, validatedRootDir);
 
     setIsCreating(true);
 
@@ -155,7 +162,7 @@ export default function NewProject() {
       const result = await createProject(
         repoUrl,
         selectedBranch,
-        rootDir,
+        validatedRootDir,
         projectPreset,
         config,
       );
