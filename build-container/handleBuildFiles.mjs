@@ -11,10 +11,10 @@ const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const DEPLOYMENT_DIR_NAME = process.env.DEPLOYMENT_DIR_NAME;
 
-const buildDirectory = process.env.BUILD_DIR;
+const outputDirectory = process.env.OUTPUT_DIR;
 const projectId = process.env.PROJECT_ID;
 
-console.log(`Build directory for the project: ${buildDirectory}`);
+console.log(`Build directory for the project: ${outputDirectory}`);
 
 // Initialize S3 client
 const s3Client = new S3Client({
@@ -89,14 +89,14 @@ function displayProgress() {
 }
 
 // Count total files
-countFiles(buildDirectory);
-console.log(`Started moving files from ${buildDirectory} for deployment.`);
+countFiles(outputDirectory);
+console.log(`Started moving files from ${outputDirectory} for deployment.`);
 
 // Start progress display every second
 const progressInterval = setInterval(displayProgress, 1000);
 
 // Start the upload
-uploadDirectoryToS3(buildDirectory)
+uploadDirectoryToS3(outputDirectory)
 	.then(() => {
 		clearInterval(progressInterval);
 		displayProgress();
