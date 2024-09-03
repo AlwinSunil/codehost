@@ -84,9 +84,8 @@ if ! command -v node >/dev/null; then
   exit 1
 fi
 
-# Install dependencies
 echo "Starting npm install..."
-if ! "$INSTALL_COMMAND"; then
+if ! eval "$INSTALL_COMMAND"; then
   echo "Error: npm install failed."
   exit 1
 fi
@@ -94,7 +93,7 @@ echo "npm install completed."
 
 # Build the project
 echo "Starting build..."
-if ! "$BUILD_COMMAND"; then
+if ! eval "$BUILD_COMMAND"; then
   echo "Error: Build failed."
   exit 1
 fi
@@ -106,7 +105,6 @@ if [ ! -d "$OUTPUT_DIR" ]; then
   exit 1
 fi
 
-# Run additional script
 node /app/handleBuildFiles.mjs || {
   echo "Error: Failed to handle build files."
   exit 1
