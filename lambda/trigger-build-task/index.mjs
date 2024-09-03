@@ -27,7 +27,9 @@ const updateTaskStatus = async (taskId, status) => {
 
 const startBuildTaskContainer = async (taskData, receiptHandle) => {
 	console.log(`Starting container process for task: ${taskData.TaskId}`);
-	console.log(`${taskData.RepoUrl} | ${taskData.Branch}`);
+	console.log(
+		`${taskData.RepoUrl} | ${taskData.Branch} | ${taskData.RootDir}`
+	);
 	console.log(
 		`User ID: ${taskData.UserId} | Project ID: ${taskData.ProjectId}`
 	);
@@ -49,13 +51,14 @@ const startBuildTaskContainer = async (taskData, receiptHandle) => {
 						{ name: "PROJECT_ID", value: taskData.ProjectId },
 						{ name: "REPO_URL", value: taskData.RepoUrl },
 						{ name: "BRANCH_NAME", value: taskData.Branch },
+						{ name: "ROOT_DIR", value: taskData.RootDir },
 						{ name: "PRESET", value: taskData.Preset },
 						{
 							name: "INSTALL_COMMAND",
 							value: taskData.InstallCommand,
 						},
 						{ name: "BUILD_COMMAND", value: taskData.BuildCommand },
-						{ name: "BUILD_DIR", value: taskData.OutputDir },
+						{ name: "OUTPUT_DIR", value: taskData.OutputDir },
 					],
 				},
 			],
@@ -101,6 +104,7 @@ export const handler = async (event) => {
 			UserId: messageAttributes.UserId.stringValue,
 			RepoUrl: messageAttributes.RepoUrl.stringValue,
 			Branch: messageAttributes.Branch.stringValue,
+			RootDir: messageAttributes.RootDir.stringValue,
 			Preset: messageAttributes.Preset.stringValue,
 			InstallCommand: messageAttributes.InstallCommand.stringValue,
 			BuildCommand: messageAttributes.BuildCommand.stringValue,
