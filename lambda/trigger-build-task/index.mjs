@@ -18,7 +18,7 @@ const initDb = async () => {
 
 const updateTaskStatus = async (taskId, status) => {
 	try {
-		await client.sql`UPDATE "Task" SET status = ${status} WHERE id = ${taskId}`;
+		await client.sql`UPDATE "Task" SET "status" = ${status}, "lastUpdated" = NOW() WHERE id = ${taskId};`;
 	} catch (error) {
 		console.error(`Failed to update status for task ${taskId}:`, error);
 		throw error;
@@ -48,6 +48,7 @@ const startBuildTaskContainer = async (taskData, receiptHandle) => {
 				{
 					name: "codehost-build-container",
 					environment: [
+						{ name: "TASK_ID", value: taskData.TaskId },
 						{ name: "PROJECT_ID", value: taskData.ProjectId },
 						{ name: "REPO_URL", value: taskData.RepoUrl },
 						{ name: "BRANCH_NAME", value: taskData.Branch },
