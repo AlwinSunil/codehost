@@ -7,7 +7,6 @@ import mime from "mime-types";
 const AWS_REGION = process.env.AWS_REGION;
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
-
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const DEPLOYMENT_DIR_NAME = process.env.DEPLOYMENT_DIR_NAME;
 
@@ -16,7 +15,6 @@ const projectId = process.env.PROJECT_ID;
 
 console.log(`Build directory for the project: ${outputDirectory}`);
 
-// Initialize S3 client
 const s3Client = new S3Client({
 	region: AWS_REGION,
 	credentials: {
@@ -25,13 +23,12 @@ const s3Client = new S3Client({
 	},
 });
 
-// Set concurrency limit
+// Set concurrency limit for uploads
 const limit = pLimit(25);
 
 let totalFiles = 0;
 let uploadedFiles = 0;
 
-// Count files in the directory
 function countFiles(dir) {
 	const items = fs.readdirSync(dir);
 	items.forEach((item) => {
@@ -45,24 +42,18 @@ function countFiles(dir) {
 	});
 }
 
-// Upload file to S3
 async function uploadFileToS3(filePath, key) {
-	try {
-		const fileStream = fs.createReadStream(filePath);
-		const uploadParams = {
-			Bucket: S3_BUCKET_NAME,
-			Key: key,
-			Body: fileStream,
-			ContentType: mime.lookup(filePath),
-		};
-		await s3Client.send(new PutObjectCommand(uploadParams));
-		uploadedFiles += 1;
-	} catch (err) {
-		console.error(`Error uploading ${key}: ${err.message}`);
-	}
+	const fileStream = fs.createReadStream(filePath);
+	const uploadParams = {
+		Bucket: S3_BUCKET_NAME,
+		Key: key,
+		Body: fileStream,
+		ContentType: mime.lookup(filePath) || "application/octet-stream",
+	};
+	await s3Client.send(new PutObjectCommand(uploadParams));
+	uploadedFiles += 1;
 }
 
-// Upload directory to S3
 async function uploadDirectoryToS3(dir, basePath = "") {
 	const items = fs.readdirSync(dir);
 	const uploadPromises = items.map((item) => {
@@ -80,7 +71,6 @@ async function uploadDirectoryToS3(dir, basePath = "") {
 	await Promise.all(uploadPromises);
 }
 
-// Display progress
 function displayProgress() {
 	const progress = ((uploadedFiles / totalFiles) * 100).toFixed(2);
 	console.log(
@@ -88,21 +78,27 @@ function displayProgress() {
 	);
 }
 
-// Count total files
-countFiles(outputDirectory);
-console.log(`Started moving files from ${outputDirectory} for deployment.`);
+(async () => {
+	try {
+		// Count total files before uploading
+		countFiles(outputDirectory);
+		console.log(
+			`Started moving files from ${outputDirectory} for deployment.`
+		);
 
-// Start progress display every second
-const progressInterval = setInterval(displayProgress, 1000);
+		// Display progress every second
+		const progressInterval = setInterval(displayProgress, 1000);
 
-// Start the upload
-uploadDirectoryToS3(outputDirectory)
-	.then(() => {
+		await uploadDirectoryToS3(outputDirectory);
+
 		clearInterval(progressInterval);
 		displayProgress();
 		console.log("Files successfully moved for deployment.");
-	})
-	.catch((err) => {
-		clearInterval(progressInterval);
-		console.error(`Error during upload: ${err.message}`);
-	});
+		process.exit(0);
+	} catch (err) {
+		console.error(
+			`Error during moving files for deployment: ${err.message}`
+		);
+		process.exit(1);
+	}
+})();

@@ -1,8 +1,7 @@
 FROM node:lts-slim
 
 # Install necessary packages
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
-
+RUN apt-get update && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
 # Set working directory
 WORKDIR /app
 
@@ -11,7 +10,8 @@ COPY package*.json ./
 RUN npm ci
 
 # Copy application files
-COPY handleBuildFiles.mjs /app/handleBuildFiles.mjs
+COPY updateTaskServer.js /app/updateTaskServer.js
+COPY handleBuildFiles.js /app/handleBuildFiles.js
 COPY script.sh /app/script.sh
 
 # Make the script executable
