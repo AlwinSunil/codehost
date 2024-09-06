@@ -89,7 +89,7 @@ export default async function DashboardHome() {
               </span>
             </div>
             <hr className="border-gray-200" />
-            <span className="flex w-fit items-center gap-1.5 rounded-full border bg-gray-100 px-2.5 py-1 pr-3 font-sans text-xs font-medium text-black">
+            <span className="flex w-fit items-center gap-1.5 rounded-full border bg-gray-50 px-2.5 py-1 pr-3 font-sans text-xs font-medium text-black">
               <svg
                 aria-label="github"
                 viewBox="0 0 14 14"
