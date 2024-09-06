@@ -9,8 +9,11 @@ export default function ProjectHeader({ project }) {
     toast.info("Copied to clipboard!", { duration: 1000 });
   };
 
+  const isLocal = process.env.NODE_ENV === "development";
+  const protocol = isLocal ? "http" : "https";
+
   const displayURL = `${project?.subdomain}.${process.env.NEXT_PUBLIC_BASE_URL}`;
-  const deployedURL = `${project?.subdomain}.${process.env.NEXT_PUBLIC_BASE_URL}`;
+  const deployedURL = `${protocol}://${project?.subdomain}.${process.env.NEXT_PUBLIC_BASE_URL}`;
 
   return (
     <>
@@ -39,7 +42,7 @@ export default function ProjectHeader({ project }) {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              class="h-6 cursor-pointer items-center justify-center rounded-sm border border-gray-200 p-1 text-black shadow-inner hover:bg-gray-50"
+              className="h-6 cursor-pointer items-center justify-center rounded-sm border border-gray-200 p-1 text-black shadow-inner hover:bg-gray-50"
               onClick={() => copyToClipboard(deployedURL)}
             >
               <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
