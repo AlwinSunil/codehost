@@ -1,6 +1,7 @@
-const queueUrl = process.env.AWS_BUILD_SQS_URL;
 const { SendMessageCommand } = require("@aws-sdk/client-sqs");
 const { sqsClient } = require("@/lib/aws");
+
+const queueUrl = process.env.AWS_BUILD_SQS_URL;
 
 export async function addJobToBuildQueue(
   taskId,

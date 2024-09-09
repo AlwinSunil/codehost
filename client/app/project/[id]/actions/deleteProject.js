@@ -1,7 +1,8 @@
 "use server";
 
 import { getServerSession } from "next-auth/next";
-import { prisma, authConfig } from "@/lib/auth";
+import { authConfig } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function deleteProject(projectId) {
   const session = await getServerSession(authConfig);

@@ -7,7 +7,8 @@ export const metadata = {
     "Dashboard for CodeHost. CodeHost is a platform for developers to host frontend code",
 };
 
-import { authConfig, prisma } from "@/lib/auth";
+import { authConfig } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 
 const handleGithubLink = (url) => {
