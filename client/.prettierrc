@@ -1,5 +1,21 @@
 {
     "plugins": [
+        "@ianvs/prettier-plugin-sort-imports",
         "prettier-plugin-tailwindcss"
+    ],
+    "importOrder": [
+        "^react",
+        "^next",
+        "^next-auth",
+        "",
+        "<THIRD_PARTY_MODULES>",
+        "",
+        "@/lib/(.*)$",
+        "@/utils/(.*)$",
+        "@/components/(.*)$",
+        "@/app/(.*)$",
+        "",
+        "^\\./",
+        "^\\../"
     ]
 }

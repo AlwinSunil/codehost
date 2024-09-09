@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+
 import { toast } from "sonner";
 
-import getLatestCommit from "../actions/getLatestCommit";
 import deployLatestCommit from "../actions/deployLatestCommit";
+import getLatestCommit from "../actions/getLatestCommit";
 
 export default function LatestCommit({ project }) {
   const [latestCommit, setLatestCommit] = useState(null);

@@ -1,7 +1,9 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
 import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
+
+import { prisma } from "@/lib/prisma";
+
 import getLatestCommit from "./getLatestCommit";
 
 export default async function deployLatestCommit(id, repo, branch) {

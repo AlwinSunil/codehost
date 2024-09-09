@@ -1,6 +1,7 @@
-import { authConfig } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+
+import { authConfig } from "@/lib/auth";
 
 import SignInButton from "./components/SignInButton";
 

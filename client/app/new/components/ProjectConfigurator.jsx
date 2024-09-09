@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import * as Accordion from "@radix-ui/react-accordion";
 import clsx from "clsx";
 
@@ -179,8 +180,8 @@ export default function ProjectConfigurator({
                 </label>
                 <PresetSelect
                   presets={presets}
-                  selectedPreset={preset} // Use preset for the selected option
-                  onChange={handlePresetChange} // Update preset state on change
+                  selectedPreset={preset}
+                  onChange={handlePresetChange}
                 />
               </div>
 

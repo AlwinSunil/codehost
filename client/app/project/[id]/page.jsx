@@ -1,13 +1,16 @@
+import { getServerSession } from "next-auth";
+import { notFound } from "next/navigation";
+
+import clsx from "clsx";
+import { formatDistanceToNow } from "date-fns";
+
 import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { formatDistanceToNow } from "date-fns";
 import ProjectHeader from "@/app/components/ProjectHeader";
-import { notFound } from "next/navigation";
-import clsx from "clsx";
+
+import { fetchTasks } from "./actions/fetchTasks";
 import LatestCommit from "./components/LatestCommit";
 import TaskList from "./components/TaskList";
-import { fetchTasks } from "./actions/fetchTasks";
 
 const statusClasses = {
   ON_QUEUE: "border-gray-200 bg-gray-50 text-gray-900 shadow-gray-100",

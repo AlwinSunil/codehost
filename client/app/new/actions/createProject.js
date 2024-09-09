@@ -2,10 +2,12 @@
 
 import crypto from "crypto";
 import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/prisma";
+
+import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
+
 import { authConfig } from "@/lib/auth";
 import { octokit } from "@/lib/octokit";
-import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
+import { prisma } from "@/lib/prisma";
 
 const generateSubdomain = (repo) => {
   const randomLetters = crypto

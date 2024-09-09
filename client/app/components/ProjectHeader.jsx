@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "sonner";
+
 import ProjectSettings from "./ProjectSettings";
 
 export default function ProjectHeader({ project }) {

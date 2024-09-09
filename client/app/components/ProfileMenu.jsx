@@ -1,7 +1,8 @@
 "use client";
 
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { signOut, useSession } from "next-auth/react";
+
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 function ProfileMenu() {
   const { data: session } = useSession();

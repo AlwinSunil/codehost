@@ -1,15 +1,17 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+
+import * as Dialog from "@radix-ui/react-dialog";
+
 import { deleteProject } from "@/app/project/[id]/actions/deleteProject";
 
 function ProfileMenu({ project }) {
   const { data: session } = useSession();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false); // Renamed to isLoading
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleDeleteProject = async () => {
     const deleteCommand = `delete ${project.name}`;

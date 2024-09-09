@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { fetchTasks } from "../actions/fetchTasks";
-import { formatDistanceToNow } from "date-fns";
+
 import clsx from "clsx";
+import { formatDistanceToNow } from "date-fns";
+
+import { fetchTasks } from "../actions/fetchTasks";
 
 const statusClasses = {
   ON_QUEUE: "border-gray-200 bg-gray-50 text-gray-900 shadow-gray-100",

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import clsx from "clsx";
+
 import { createProject } from "./actions/createProject";
 import { validateAndFetchBranches } from "./actions/validateRepo";
 import ProjectConfigurator from "./components/ProjectConfigurator";
@@ -181,7 +183,7 @@ export default function NewProject() {
         error: error.message,
       });
     } finally {
-      setIsCreating(false); // Set loading state to false when action ends
+      setIsCreating(false);
     }
   };
 
