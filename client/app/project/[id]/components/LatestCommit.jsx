@@ -6,8 +6,11 @@ import { toast } from "sonner";
 
 import deployLatestCommit from "../actions/deployLatestCommit";
 import getLatestCommit from "../actions/getLatestCommit";
+import { useTaskRefetch } from "../Context/TaskRefetchContext";
 
 export default function LatestCommit({ project }) {
+  const { refetchTasks } = useTaskRefetch();
+
   const [latestCommit, setLatestCommit] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -52,7 +55,8 @@ export default function LatestCommit({ project }) {
       );
 
       if (response.success) {
-        toast.success("Deployment started successfully!", { duration: 2000 });
+        toast.success("Deployment started successfully", { duration: 2000 });
+        refetchTasks();
         setLatestCommit(null);
       } else {
         toast.error(response.message || "Failed to start deployment", {
@@ -67,41 +71,48 @@ export default function LatestCommit({ project }) {
   };
 
   return (
-    <div className="flex items-center gap-2 border-l pl-3">
+    <div className="flex items-center gap-4 border-l pl-4">
       {latestCommit ? (
         <>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <span>Latest Commit: </span>
-            <p className="flex items-center gap-1 text-xs text-black group-hover:underline">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4 text-black"
-              >
-                <circle cx="12" cy="12" r="3" />
-                <line x1="3" x2="9" y1="12" y2="12" />
-                <line x1="15" x2="21" y1="12" y2="12" />
-              </svg>
-              {latestCommit.hash.substring(0, 7)}
-            </p>
-            <p className="w-72 truncate font-mono text-xs text-gray-700">
-              {latestCommit.message}
-            </p>
+            <a
+              href={`${project.repoLink}/commit/${latestCommit.hash}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex w-80 items-center gap-4 hover:underline"
+            >
+              <p className="flex items-center gap-1 text-xs text-black group-hover:underline">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4 text-black"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <line x1="3" x2="9" y1="12" y2="12" />
+                  <line x1="15" x2="21" y1="12" y2="12" />
+                </svg>
+                {latestCommit.hash.substring(0, 7)}
+              </p>
+              <p className="w-fit truncate font-mono text-xs text-gray-700">
+                {latestCommit.message}
+              </p>
+            </a>
           </div>
           <button
-            className="bg-black px-2 py-1 text-white ring-1 ring-gray-300 ring-offset-1"
+            className="bg-black px-2 py-1 text-white"
             onClick={handleDeploy}
             disabled={loading}
           >
             Deploy change
           </button>
           <button
-            className="h-max border border-gray-300 p-1 hover:border-gray-400 hover:bg-gray-50 disabled:opacity-50"
+            className="h-max border border-gray-400 p-1 hover:border-gray-500 hover:bg-gray-50 disabled:opacity-50"
             onClick={handleGetLatestCommits}
             disabled={loading}
           >
@@ -119,7 +130,9 @@ export default function LatestCommit({ project }) {
               <path d="M21 3v5h-5" />
             </svg>
           </button>
-          <span>*Deploys the latest commit; not updated in real-time.</span>
+          <span className="font-normal">
+            *Deploys the latest commit; not updated in real-time.
+          </span>
         </>
       ) : (
         <>

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 
-export async function fetchTasks(projectId, skip = 0, take = 11, userId) {
+export async function fetchTasks(projectId, skip = 0, take = 10, userId) {
   const tasks = await prisma.task.findMany({
     where: {
       projectId,
