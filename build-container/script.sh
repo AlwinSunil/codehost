@@ -1,11 +1,39 @@
 #!/bin/sh
 
+# Path to the named pipe
+PIPE=/tmp/logpipe
+mkfifo "$PIPE"
+
+# Function to send logs to the API
+send_log() {
+  local log_message=$1
+  local response
+
+  # Create JSON payload with jq
+  json_payload=$(jq -n --arg log "$log_message" '{"log": $log}')
+
+  # Send the log to the API
+  response=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" \
+    -d "$json_payload" \
+    http://localhost:3000/api/task/log)
+
+  # # Debug response
+  echo "JSON payload: $json_payload"
+
+  if [ "$response" -ne 200 ]; then
+    echo "ERROR:INTERNAL_STATUS_SERVER: Failed to send log to API. HTTP status code: $response"
+    exit 1
+  fi
+}
+
 # Function to update build status
 update_build_status() {
-  if ! curl -X POST -H "Content-Type: application/json" \
-    -d "{\"taskId\":\"$TASK_ID\", \"status\":\"$1\"}" \
-    http://localhost:3000/api/task/update >/dev/null 2>&1; then
-    echo "ERROR:INTERNAL_STATUS_SERVER: Failed to update build status to $1"
+  local status=$1
+  if ! curl -s -o /dev/null -X POST -H "Content-Type: application/json" \
+    -d "{\"taskId\":\"$TASK_ID\", \"status\":\"$status\"}" \
+    http://localhost:3000/api/task/update; then
+    echo "Failed to update build status to $status"
+    update_build_status "FAILED"
     exit 1
   fi
 }
@@ -51,6 +79,12 @@ validate_project_env() {
 # Start the task status server
 echo "Starting task status server..."
 node /app/updateTaskServer.js &
+
+# Start a background process to read from the named pipe and send logs
+(while IFS= read -r line; do send_log "$line"; done <"$PIPE") &
+
+# Redirect stdout and stderr to the named pipe
+exec >"$PIPE" 2>&1
 
 # Wait for the server to start and become healthy
 server_ready=false
@@ -155,3 +189,6 @@ else
   update_build_status "FAILED"
   exit 1
 fi
+
+# Clean up
+rm "$PIPE"

@@ -1,7 +1,8 @@
 FROM node:lts-slim
 
 # Install necessary packages
-RUN apt-get update && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git curl redis-server jq && rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /app
 
@@ -17,5 +18,8 @@ COPY script.sh /app/script.sh
 # Make the script executable
 RUN chmod +x /app/script.sh
 
-# Set the script as the entry point
-ENTRYPOINT [ "/app/script.sh" ]
+# Convert to Unix-style line endings
+RUN sed -i 's/\r$//' /app/script.sh
+
+# Ensure Redis is running before starting the script
+CMD service redis-server start && /app/script.sh
