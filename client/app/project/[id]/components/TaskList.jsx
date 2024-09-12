@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
@@ -17,9 +18,12 @@ const statusClasses = {
   FAILED: "border-red-200 bg-red-50 text-red-600 shadow-red-100",
 };
 
-function TaskItem({ task }) {
+function TaskItem({ projectId, task }) {
   return (
-    <div className="flex flex-row items-center gap-4 border-b px-8 py-5 last:border-b-0">
+    <Link
+      href={`/project/${projectId}/${task.id}`}
+      className="flex flex-row items-center gap-4 border-b px-8 py-5 last:border-b-0"
+    >
       <p className="w-52 overflow-hidden text-sm font-medium">
         {task.id.slice(0, 10)}
       </p>
@@ -59,7 +63,7 @@ function TaskItem({ task }) {
       <p className="ml-auto w-fit text-xs text-gray-600">
         {formatDistanceToNow(new Date(task.lastUpdated), { addSuffix: true })}
       </p>
-    </div>
+    </Link>
   );
 }
 
@@ -108,12 +112,13 @@ export default function TaskList({ projectId, currentUserId }) {
   return (
     <div className="mt-6 flex flex-col">
       <h2 className="mb-2.5 text-lg font-semibold">Deployment tasks</h2>
-
       <div className="flex flex-col border">
         {tasks.length === 0 && !loading ? (
           <div className="flex items-center px-4 py-2">No tasks available</div>
         ) : (
-          tasks.map((task) => <TaskItem key={task.id} task={task} />)
+          tasks.map((task) => (
+            <TaskItem projectId={projectId} key={task.id} task={task} />
+          ))
         )}
         {loading && (
           <div className="flex items-center px-4 py-2">Loading...</div>
