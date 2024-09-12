@@ -1,7 +1,6 @@
 import express from "express";
 import { db } from "@vercel/postgres";
 import { createClient } from "redis";
-import { v4 as uuidv4 } from "uuid";
 
 const redisClient = createClient();
 let clientPool = null;
@@ -17,7 +16,7 @@ async function initRedis() {
 
 function handleError(message) {
 	console.error(`ERROR:INTERNAL_STATUS_SERVER: ${message}`);
-	process.exit(1); // Ensure this is the desired behavior
+	process.exit(1);
 }
 
 async function initDbConnection() {
@@ -58,27 +57,48 @@ async function processLogs() {
 		const logs = await redisClient.lRange("logs", 0, -1);
 		if (logs.length > 0) {
 			await client.query("BEGIN");
-			const insertQuery = `INSERT INTO "TaskLogs" (id, "createdAt", "taskId", "log") VALUES ($1, $2, $3, $4)`;
+			const insertQuery = `
+		  INSERT INTO "TaskLogs" (id, "createdAt", "taskId", log)
+		  VALUES (uuid_generate_v4(), CURRENT_TIMESTAMP, $1, $2)
+		`;
 			const taskId = process.env.TASK_ID;
-			for (const log of logs) {
-				const logEntry = JSON.parse(log);
-				const { log: text, timestamp } = logEntry;
-				await client.query(insertQuery, [
-					uuidv4(),
-					timestamp,
-					taskId,
-					text,
-				]);
+
+			if (!taskId) {
+				throw new Error("TASK_ID environment variable is not set");
 			}
+
+			let lastLogWasWhitespace = false;
+
+			for (const logEntry of logs) {
+				let parsedLog;
+				try {
+					parsedLog = JSON.parse(logEntry);
+				} catch (e) {
+					console.error(`Error parsing log entry: ${logEntry}`);
+					handleError("Error parsing log entry");
+				}
+
+				const logText = parsedLog.log;
+
+				const isCurrentWhitespace = logText.trim() === "";
+
+				if (isCurrentWhitespace && lastLogWasWhitespace) {
+					continue;
+				}
+
+				lastLogWasWhitespace = isCurrentWhitespace;
+
+				await client.query(insertQuery, [taskId, logText]);
+			}
+
 			await client.query("COMMIT");
-			await redisClient.lTrim("logs", logs.length, -1); // Remove processed logs only if transaction succeeds
+			await redisClient.lTrim("logs", logs.length, -1);
 		}
 	} catch (error) {
 		await client.query("ROLLBACK");
 		console.error(
 			`ERROR:INTERNAL_STATUS_SERVER: Error processing logs: ${error.message}`
 		);
-		// Consider adding retry logic or additional handling here
 	}
 }
 
@@ -118,17 +138,13 @@ app.post("/api/task/log", async (req, res) => {
 		}
 
 		let { log } = req.body;
-		const timestamp = new Date().toISOString();
 
-		const logEntry = JSON.stringify({
-			log,
-			timestamp,
-		});
+		const logEntry = JSON.stringify({ log });
 		await redisClient.lPush("logs", logEntry);
 
 		res.status(200).json({
 			message: "Log added",
-			log: { taskId, log, timestamp },
+			log: { taskId, log },
 		});
 	} catch (error) {
 		console.error(
@@ -151,7 +167,7 @@ app.get("/health", (req, res) => {
 		app.listen(3000, () => {
 			console.log("Server is running on port 3000");
 		});
-		setInterval(processLogs, 2000); // Process logs every 2 seconds
+		setInterval(processLogs, 3000); // Process logs every 2 seconds
 	} catch (error) {
 		handleError("Internal error during startup");
 	}

@@ -18,7 +18,7 @@ send_log() {
     http://localhost:3000/api/task/log)
 
   # # Debug response
-  echo "JSON payload: $json_payload"
+  echo "LOG: $log_message"
 
   if [ "$response" -ne 200 ]; then
     echo "ERROR:INTERNAL_STATUS_SERVER: Failed to send log to API. HTTP status code: $response"
