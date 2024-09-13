@@ -1,9 +1,9 @@
 import express from "express";
-import { db } from "@vercel/postgres";
+import { PrismaClient } from "@prisma/client";
 import { createClient } from "redis";
 
+const prisma = new PrismaClient();
 const redisClient = createClient();
-let clientPool = null;
 
 async function initRedis() {
 	try {
@@ -19,83 +19,44 @@ function handleError(message) {
 	process.exit(1);
 }
 
-async function initDbConnection() {
-	try {
-		clientPool = await db.connect();
-	} catch (error) {
-		handleError(`Failed to connect to the database: ${error.message}`);
-	}
-}
-
-async function getClient() {
-	if (clientPool === null) {
-		await initDbConnection();
-	}
-	return clientPool;
-}
-
 async function updateTaskStatus(taskId, status) {
-	const client = await getClient();
 	try {
-		await client.query("BEGIN");
-		const updateQuery = `UPDATE "Task" SET "status" = $1, "lastUpdated" = NOW() WHERE id = $2 RETURNING *`;
-		const result = await client.query(updateQuery, [status, taskId]);
-		if (result.rowCount === 0) {
-			throw new Error("No active task found to update");
-		}
-		await client.query("COMMIT");
-		return result.rows[0];
+		const updatedTask = await prisma.task.update({
+			where: { id: taskId },
+			data: { status, lastUpdated: new Date() },
+		});
+		return updatedTask;
 	} catch (error) {
-		await client.query("ROLLBACK");
 		handleError(`Error updating task status: ${error.message}`);
 	}
 }
 
 async function processLogs() {
-	const client = await getClient();
 	try {
 		const logs = await redisClient.lRange("logs", 0, -1);
 		if (logs.length > 0) {
-			await client.query("BEGIN");
-			const insertQuery = `
-		  INSERT INTO "TaskLogs" (id, "createdAt", "taskId", log)
-		  VALUES (uuid_generate_v4(), CURRENT_TIMESTAMP, $1, $2)
-		`;
 			const taskId = process.env.TASK_ID;
 
 			if (!taskId) {
 				throw new Error("TASK_ID environment variable is not set");
 			}
 
-			let lastLogWasWhitespace = false;
+			const processedLogs = logs.map((logEntry) => {
+				const parsedLog = JSON.parse(logEntry);
+				return {
+					taskId,
+					log: parsedLog.log,
+					loggedAt: new Date(parsedLog.timestamp),
+				};
+			});
 
-			for (const logEntry of logs) {
-				let parsedLog;
-				try {
-					parsedLog = JSON.parse(logEntry);
-				} catch (e) {
-					console.error(`Error parsing log entry: ${logEntry}`);
-					handleError("Error parsing log entry");
-				}
+			await prisma.taskLogs.createMany({
+				data: processedLogs,
+			});
 
-				const logText = parsedLog.log;
-
-				const isCurrentWhitespace = logText.trim() === "";
-
-				if (isCurrentWhitespace && lastLogWasWhitespace) {
-					continue;
-				}
-
-				lastLogWasWhitespace = isCurrentWhitespace;
-
-				await client.query(insertQuery, [taskId, logText]);
-			}
-
-			await client.query("COMMIT");
 			await redisClient.lTrim("logs", logs.length, -1);
 		}
 	} catch (error) {
-		await client.query("ROLLBACK");
 		console.error(
 			`ERROR:INTERNAL_STATUS_SERVER: Error processing logs: ${error.message}`
 		);
@@ -138,13 +99,14 @@ app.post("/api/task/log", async (req, res) => {
 		}
 
 		let { log } = req.body;
+		const timestamp = new Date().toISOString();
 
-		const logEntry = JSON.stringify({ log });
+		const logEntry = JSON.stringify({ log, timestamp });
 		await redisClient.lPush("logs", logEntry);
 
 		res.status(200).json({
 			message: "Log added",
-			log: { taskId, log },
+			log: { taskId, log, timestamp },
 		});
 	} catch (error) {
 		console.error(
@@ -162,12 +124,12 @@ app.get("/health", (req, res) => {
 
 (async () => {
 	try {
-		await initDbConnection();
+		await prisma.$connect();
 		await initRedis();
 		app.listen(3000, () => {
 			console.log("Server is running on port 3000");
 		});
-		setInterval(processLogs, 3000); // Process logs every 2 seconds
+		setInterval(processLogs, 3000); // Process logs every 3 seconds
 	} catch (error) {
 		handleError("Internal error during startup");
 	}

@@ -17,7 +17,6 @@ send_log() {
     -d "$json_payload" \
     http://localhost:3000/api/task/log)
 
-  # # Debug response
   echo "LOG: $log_message"
 
   if [ "$response" -ne 200 ]; then
@@ -110,7 +109,8 @@ check_internal_env_var "AWS_ACCESS_KEY_ID" "$AWS_ACCESS_KEY_ID"
 check_internal_env_var "AWS_SECRET_ACCESS_KEY" "$AWS_SECRET_ACCESS_KEY"
 check_internal_env_var "S3_BUCKET_NAME" "$S3_BUCKET_NAME"
 check_internal_env_var "DEPLOYMENT_DIR_NAME" "$DEPLOYMENT_DIR_NAME"
-check_internal_env_var "POSTGRES_URL" "$POSTGRES_URL"
+check_internal_env_var "POSTGRES_PRISMA_URL" "$POSTGRES_PRISMA_URL"
+check_internal_env_var "POSTGRES_URL_NON_POOLING" "$POSTGRES_URL_NON_POOLING"
 
 # Check and validate other variables
 check_project_env_var "PROJECT_ID" "$PROJECT_ID"
