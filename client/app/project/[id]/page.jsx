@@ -1,12 +1,12 @@
-import { getServerSession } from "next-auth";
-import { notFound } from "next/navigation";
+"use client";
 
-import { authConfig } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import React from "react";
+import { useSession } from "next-auth/react";
 
 import LatestCommit from "./components/LatestCommit";
 import LatestTask from "./components/LatestTask";
 import TaskList from "./components/TaskList";
+import { useProject } from "./context/ProjectContext";
 
 const handleGithubLink = (url) => {
   const urlParts = url.split("/");
@@ -16,22 +16,17 @@ const handleGithubLink = (url) => {
   return `${urlParts[3]}/${urlParts[4]}`;
 };
 
-export default async function Project({ params }) {
-  const session = await getServerSession(authConfig);
-  if (!session) {
-    return <div>You are not logged in.</div>;
-  }
+export default function Project() {
+  const { data: session } = useSession();
+  const project = useProject();
 
-  const { id } = params;
-  const currentUserId = session?.user?.id;
-
-  const project = await prisma.project.findUnique({
-    where: { id: id },
-  });
+  console.log("project", project);
 
   if (!project) {
-    notFound();
+    return <div>Loading...</div>;
   }
+
+  const currentUserId = session?.user?.id;
 
   return (
     <>
@@ -56,16 +51,16 @@ export default async function Project({ params }) {
               </p>
             </a>
             <p className="w-fit rounded-full bg-blue-50 px-2 font-sans text-xs font-semibold text-blue-600">
-              {project?.branch}
+              {project.branch}
             </p>
           </div>
           <LatestCommit project={project} />
         </div>
       </div>
       {/* Latest deployment ribbon */}
-      <LatestTask project={project.id} />
+      <LatestTask projectId={project.id} />
       {/* Deployment tasks list */}
-      <TaskList projectId={id} currentUserId={currentUserId} />
+      <TaskList projectId={project.id} currentUserId={currentUserId} />
     </>
   );
 }

@@ -7,7 +7,7 @@ import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
 
 import { fetchTasks } from "../actions/fetchTasks";
-import { useTaskRefetch } from "../Context/TaskRefetchContext";
+import { useTaskRefetch } from "../context/TaskRefetchContext";
 
 const statusClasses = {
   ON_QUEUE: "border-gray-200 bg-gray-50 text-gray-900 shadow-gray-100",
@@ -110,11 +110,11 @@ export default function TaskList({ projectId, currentUserId }) {
   };
 
   return (
-    <div className="mt-6 flex flex-col">
-      <h2 className="mb-2.5 text-lg font-semibold">Deployment tasks</h2>
+    <div className="mt-5 flex flex-col">
+      <h2 className="mb-2.5 text-lg font-semibold">Other Deployment tasks</h2>
       <div className="flex flex-col border">
         {tasks.length === 0 && !loading ? (
-          <div className="flex items-center px-4 py-2">No tasks available</div>
+          <div className="flex items-center px-4 py-2">No other tasks</div>
         ) : (
           tasks.map((task) => (
             <TaskItem projectId={projectId} key={task.id} task={task} />

@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
 
 import { fetchLatestTask } from "../actions/fetchLatestTask";
-import { useTaskRefetch } from "../Context/TaskRefetchContext";
+import { useTaskRefetch } from "../context/TaskRefetchContext";
 
 const statusClasses = {
   ON_QUEUE: "border-yellow-400 bg-yellow-100 text-yellow-700",
@@ -82,7 +83,10 @@ export default function LatestTask({ projectId }) {
       <span className="w-fit border-r py-2 pl-4 text-base font-semibold capitalize leading-5 tracking-tight">
         Latest deployment
       </span>
-      <div className="group flex w-full items-center justify-between gap-2 px-4 py-6 hover:cursor-pointer hover:bg-gray-50/50 md:px-10">
+      <Link
+        href={`/project/${projectId}/${latestTask.id}`}
+        className="group flex w-full items-center justify-between gap-2 px-4 py-6 hover:cursor-pointer hover:bg-gray-50/50 md:px-10"
+      >
         <p className="flex items-center gap-1.5 text-sm text-black group-hover:underline">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -129,7 +133,7 @@ export default function LatestTask({ projectId }) {
             })}
           </p>
         </div>
-      </div>
+      </Link>
     </div>
   );
 }

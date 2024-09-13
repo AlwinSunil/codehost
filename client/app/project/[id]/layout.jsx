@@ -5,7 +5,8 @@ import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 import ProjectHeader from "./components/ProjectHeader";
-import { TaskRefetchProvider } from "./Context/TaskRefetchContext";
+import { ProjectProvider } from "./context/ProjectContext";
+import { TaskRefetchProvider } from "./context/TaskRefetchContext";
 
 export default async function Project({ children, params }) {
   const session = await getServerSession(authConfig);
@@ -25,10 +26,12 @@ export default async function Project({ children, params }) {
 
   return (
     <TaskRefetchProvider>
-      <div className="mb-12 flex min-h-[calc(100vh-7rem)] flex-col gap-1 px-4 py-3 md:px-10">
-        <ProjectHeader project={project} />
-        {children}
-      </div>
+      <ProjectProvider project={project}>
+        <div className="mb-12 flex min-h-[calc(100vh-7rem)] flex-col gap-1 px-4 py-3 md:px-10">
+          <ProjectHeader project={project} />
+          {children}
+        </div>
+      </ProjectProvider>
     </TaskRefetchProvider>
   );
 }
