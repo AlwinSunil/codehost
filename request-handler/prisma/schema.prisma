@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String      @id @default(cuid())
+  name          String?
+  email         String      @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  projects      Project[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  ongoingJobId  String?
+  ongoingJob    OngoingJob? @relation(fields: [ongoingJobId], references: [id])
+  Task          Task[]
+}
+
+model Project {
+  id        String        @id @default(cuid())
+  subdomain String        @unique
+  name      String
+  repoLink  String
+  branch    String
+  status    ProjectStatus @default(ACTIVE)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  tasks     Task[]
+  avatar    String
+
+  rootDir        String
+  preset         Preset
+  installCommand String
+  buildCommand   String
+  outputDir      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId], name: "idx_owner_id")
+}
+
+enum Preset {
+  VITEJS
+  OTHER
+}
+
+model Task {
+  id            String      @id @default(cuid())
+  status        TaskStatus  @default(ON_QUEUE)
+  startedAt     DateTime    @default(now())
+  lastUpdated   DateTime    @default(now())
+  commitHash    String?
+  commitMessage String?
+  completedAt   DateTime?
+  projectId     String
+  userId        String
+  project       Project     @relation(fields: [projectId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
+  OngoingJob    OngoingJob?
+  TaskLogs      TaskLogs[]
+
+  @@index([userId], name: "idx_user_id")
+}
+
+model TaskLogs {
+  id       String   @id @default(cuid())
+  taskId   String
+  loggedAt DateTime @default(now())
+  log      String
+  task     Task     @relation(fields: [taskId], references: [id])
+
+  @@index([taskId])
+}
+
+model OngoingJob {
+  id        String   @id @default(cuid())
+  taskId    String   @unique
+  task      Task     @relation(fields: [taskId], references: [id])
+  projectId String?
+  createdAt DateTime @default(now())
+  User      User[]
+
+  @@index([taskId], name: "idx_task_id")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum TaskStatus {
+  ON_QUEUE
+  STARTING
+  BUILDING
+  COMPLETED
+  DEPLOYED
+  FAILED
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
