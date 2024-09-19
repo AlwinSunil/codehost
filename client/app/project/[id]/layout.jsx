@@ -5,8 +5,8 @@ import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 import ProjectHeader from "./components/ProjectHeader";
-import { ProjectProvider } from "./context/ProjectContext";
-import { TaskRefetchProvider } from "./context/TaskRefetchContext";
+import { ProjectProvider } from "./Context/ProjectContext";
+import { TaskRefetchProvider } from "./Context/TaskRefetchContext";
 
 export default async function Project({ children, params }) {
   const session = await getServerSession(authConfig);

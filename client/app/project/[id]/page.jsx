@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import LatestCommit from "./components/LatestCommit";
 import LatestTask from "./components/LatestTask";
 import TaskList from "./components/TaskList";
-import { useProject } from "./context/ProjectContext";
+import { useProject } from "./Context/ProjectContext";
 
 const handleGithubLink = (url) => {
   const urlParts = url.split("/");

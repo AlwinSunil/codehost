@@ -7,7 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 
 import { fetchTaskLogs } from "./actions/fetchTaskLogs";
 import { fetchLatestTask } from "../actions/fetchLatestTask";
-import { useProject } from "../context/ProjectContext";
+import { useProject } from "../Context/ProjectContext";
 
 const statusClasses = {
   ON_QUEUE: "border-yellow-400 bg-yellow-100 text-yellow-700",

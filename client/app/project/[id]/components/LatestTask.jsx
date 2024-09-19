@@ -7,7 +7,7 @@ import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
 
 import { fetchLatestTask } from "../actions/fetchLatestTask";
-import { useTaskRefetch } from "../context/TaskRefetchContext";
+import { useTaskRefetch } from "../Context/TaskRefetchContext";
 
 const statusClasses = {
   ON_QUEUE: "border-yellow-400 bg-yellow-100 text-yellow-700",

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import deployLatestCommit from "../actions/deployLatestCommit";
 import getLatestCommit from "../actions/getLatestCommit";
-import { useTaskRefetch } from "../context/TaskRefetchContext";
+import { useTaskRefetch } from "../Context/TaskRefetchContext";
 
 export default function LatestCommit({ project }) {
   const { refetchTasks } = useTaskRefetch();
