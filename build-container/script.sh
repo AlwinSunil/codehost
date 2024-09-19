@@ -104,11 +104,12 @@ fi
 update_build_status "BUILDING"
 
 # Required environment variables
-check_internal_env_var "AWS_REGION" "$AWS_REGION"
-check_internal_env_var "AWS_ACCESS_KEY_ID" "$AWS_ACCESS_KEY_ID"
-check_internal_env_var "AWS_SECRET_ACCESS_KEY" "$AWS_SECRET_ACCESS_KEY"
-check_internal_env_var "S3_BUCKET_NAME" "$S3_BUCKET_NAME"
+check_internal_env_var "CLOUDFLARE_R2_ACCESS_KEY_ID" "$CLOUDFLARE_R2_ACCESS_KEY_ID"
+check_internal_env_var "CLOUDFLARE_R2_SECRET_ACCESS_KEY" "$CLOUDFLARE_R2_SECRET_ACCESS_KEY"
+check_internal_env_var "CLOUDFLARE_R2_ENDPOINT" "$CLOUDFLARE_R2_ENDPOINT"
+check_internal_env_var "CLOUDFLARE_R2_BUCKET_NAME" "$CLOUDFLARE_R2_BUCKET_NAME"
 check_internal_env_var "DEPLOYMENT_DIR_NAME" "$DEPLOYMENT_DIR_NAME"
+
 check_internal_env_var "POSTGRES_PRISMA_URL" "$POSTGRES_PRISMA_URL"
 check_internal_env_var "POSTGRES_URL_NON_POOLING" "$POSTGRES_URL_NON_POOLING"
 

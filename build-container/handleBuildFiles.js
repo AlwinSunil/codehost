@@ -4,10 +4,11 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import pLimit from "p-limit";
 import mime from "mime-types";
 
-const AWS_REGION = process.env.AWS_REGION;
-const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
-const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
-const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
+const CLOUDFLARE_R2_ACCESS_KEY_ID = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
+const CLOUDFLARE_R2_SECRET_ACCESS_KEY =
+	process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
+const CLOUDFLARE_R2_ENDPOINT = process.env.CLOUDFLARE_R2_ENDPOINT;
+const CLOUDFLARE_R2_BUCKET_NAME = process.env.CLOUDFLARE_R2_BUCKET_NAME;
 const DEPLOYMENT_DIR_NAME = process.env.DEPLOYMENT_DIR_NAME;
 
 const outputDirectory = process.env.OUTPUT_DIR;
@@ -15,11 +16,12 @@ const projectId = process.env.PROJECT_ID;
 
 console.log(`Build directory for the project: ${outputDirectory}`);
 
-const s3Client = new S3Client({
-	region: AWS_REGION,
+const storageClient = new S3Client({
+	region: "auto",
+	endpoint: CLOUDFLARE_R2_ENDPOINT,
 	credentials: {
-		accessKeyId: AWS_ACCESS_KEY_ID,
-		secretAccessKey: AWS_SECRET_ACCESS_KEY,
+		accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
+		secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
 	},
 });
 
@@ -45,12 +47,12 @@ function countFiles(dir) {
 async function uploadFileToS3(filePath, key) {
 	const fileStream = fs.createReadStream(filePath);
 	const uploadParams = {
-		Bucket: S3_BUCKET_NAME,
+		Bucket: CLOUDFLARE_R2_BUCKET_NAME,
 		Key: key,
 		Body: fileStream,
 		ContentType: mime.lookup(filePath) || "application/octet-stream",
 	};
-	await s3Client.send(new PutObjectCommand(uploadParams));
+	await storageClient.send(new PutObjectCommand(uploadParams));
 	uploadedFiles += 1;
 }
 
