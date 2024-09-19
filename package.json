@@ -4,8 +4,12 @@
   "description": "Frontend web app deployment for everyone",
   "scripts": {
     "format": "cd client && npm run format",
-    "dev": "cd client && npm run dev",
-    "build": "cd client && npm run build"
+    "dev:client": "cd client && npm run dev",
+    "dev:request-handler": "cd request-handler && npm run dev",
+    "build:client": "cd client && npm run build",
+    "prisma:generate": "cd client && npx prisma generate",
+    "prisma:migrate": "cd client && npx prisma migrate dev",
+    "prisma:studio": "cd client && npx prisma studio"
   },
   "repository": {
     "type": "git",
@@ -13,7 +17,7 @@
   },
   "author": "AlwinSunil",
   "license": "ISC",
-  "dependencies": {
-    "clsx": "^2.1.1"
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }

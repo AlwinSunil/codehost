@@ -1,11 +1,13 @@
+import { getServerSession } from "next-auth";
+
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/lib/auth";
 
-import SessionProvider from "@/app/components/SessionProvider";
-import Navbar from "@/app/components/Navbar";
+import { authConfig } from "@/lib/auth";
 import Footer from "@/app/components/Footer";
+import Navbar from "@/app/components/Navbar";
+import SessionProvider from "@/app/components/SessionProvider";
+import ToastProvider from "@/app/components/ToastProvider";
 
 import "./globals.css";
 
@@ -20,12 +22,13 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${GeistMono.className} ${GeistSans.variable} min-h-screen`}
+        className={`${GeistMono.className} ${GeistSans.variable} flex min-h-screen flex-col`}
       >
         <SessionProvider session={session}>
           <Navbar />
           {children}
           <Footer />
+          <ToastProvider />
         </SessionProvider>
       </body>
     </html>
