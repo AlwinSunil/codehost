@@ -25,6 +25,11 @@ async function updateTaskStatus(taskId, status) {
 			where: { id: taskId },
 			data: { status, lastUpdated: new Date() },
 		});
+		if (status === "FAILED" || status === "COMPLETED") {
+			await prisma.ongoingJob.deleteMany({
+				where: { taskId: taskId },
+			});
+		}
 		return updatedTask;
 	} catch (error) {
 		handleError(`Error updating task status: ${error.message}`);
