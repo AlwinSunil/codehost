@@ -16,10 +16,8 @@ export async function fetchTaskLogs(taskId, lastLogTime) {
     select: { status: true },
   });
 
-  console.log("task id data", task);
-
   if (!task) {
-    throw new Error("Task not found.");
+    return { success: false, error: "Task not found" };
   }
 
   const logs = await prisma.taskLogs.findMany({
@@ -38,5 +36,6 @@ export async function fetchTaskLogs(taskId, lastLogTime) {
       log: log.log,
     })),
     status: task.status,
+    success: true,
   };
 }
