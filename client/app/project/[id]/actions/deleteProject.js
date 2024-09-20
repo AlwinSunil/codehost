@@ -40,13 +40,35 @@ export async function deleteProject(projectId) {
         return {
           success: false,
           message:
-            "Project has ongoing deployments. Stop on going deployment to delete the project.",
+            "Project has ongoing deployments. Stop ongoing deployments to delete the project.",
         };
       }
 
-      await prisma.task.deleteMany({
+      const tasks = await prisma.task.findMany({
         where: {
           projectId: projectId,
+          userId: currentUserId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      const taskIds = tasks.map((task) => task.id);
+
+      await prisma.taskLogs.deleteMany({
+        where: {
+          taskId: {
+            in: taskIds,
+          },
+        },
+      });
+
+      await prisma.task.deleteMany({
+        where: {
+          id: {
+            in: taskIds,
+          },
         },
       });
 

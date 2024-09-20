@@ -81,12 +81,6 @@ export default function Task({ params }) {
   }, [params.taskId]);
 
   useEffect(() => {
-    if (taskDetails) {
-      fetchLogs(params.taskId, null); // Fetch logs once taskDetails are available
-    }
-  }, [taskDetails, params.taskId]);
-
-  useEffect(() => {
     if (status === "COMPLETED" || status === "FAILED") {
       return; // Stop polling if the task is completed or failed
     }
@@ -229,7 +223,7 @@ export default function Task({ params }) {
                 <span className="w-60 text-xs font-medium">
                   {new Date(log.loggedAt).toLocaleString()}
                 </span>
-                <span className="text-sm text-gray-600">{log.message}</span>
+                <span className="text-xs text-gray-600">{log.log}</span>
               </div>
             ))}
           </div>

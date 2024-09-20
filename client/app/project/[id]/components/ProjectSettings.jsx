@@ -23,7 +23,7 @@ function ProfileMenu({ project }) {
       try {
         const response = await deleteProject(project.id);
         if (response.success) {
-          router.push("/projects");
+          router.push("/dashboard");
         } else {
           alert(response.message);
         }
