@@ -6,8 +6,7 @@ const redis = new Redis({
 	token: process.env.UPSTASH_REDIS_TOKEN,
 });
 
-const BASE_PATH =
-	"https://codehost-prod.s3.ap-south-1.amazonaws.com/_deployments";
+const BASE_PATH = "https://delivery.codehost.alwinsunil.in/_deployments";
 const proxy = httpProxy.createProxyServer();
 
 const getTargetUrl = async (prisma, subdomain) => {
