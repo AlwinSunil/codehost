@@ -6,7 +6,7 @@ import path from "path";
 import prisma from "./lib/prisma.js";
 import proxyRoutes from "./routes/proxy.js";
 import logger from "./middlewares/logger.js";
-import rateLimiter from "./middlewares/rateLimiter.js";
+// import rateLimiter from "./middlewares/rateLimiter.js";
 
 const app = express();
 const PORT = 8000;

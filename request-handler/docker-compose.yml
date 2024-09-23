@@ -20,8 +20,7 @@ services:
       - request-handler
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/letsencrypt # Map your Let's Encrypt certificates
-      - ./challenge:/var/www/html # Map the challenge directory
+      - /etc/letsencrypt:/etc/letsencrypt # Map Let's Encrypt certificates from the host
     ports:
       - "80:80"
       - "443:443"
