@@ -7,6 +7,11 @@ services:
       - "8000:8000"
     networks:
       - app-network
+    environment:
+      POSTGRES_PRISMA_URL: "${POSTGRES_PRISMA_URL}"
+      POSTGRES_URL_NON_POOLING: "${POSTGRES_URL_NON_POOLING}"
+      UPSTASH_REDIS_URL: "${UPSTASH_REDIS_URL}"
+      UPSTASH_REDIS_TOKEN: "${UPSTASH_REDIS_TOKEN}"
 
   nginx:
     image: nginx:latest
