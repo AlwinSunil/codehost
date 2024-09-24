@@ -25,6 +25,28 @@ const updateTaskStatus = async (taskId, status) => {
 	}
 };
 
+const removeOngoingJobByTaskId = async (taskId) => {
+	try {
+		const ongoingJobQuery =
+			await client.sql`SELECT * FROM "OngoingJob" WHERE "taskId" = ${taskId} FOR UPDATE;`;
+
+		if (ongoingJobQuery.rowCount === 0) {
+			console.log(`No ongoing job found for task ID: ${taskId}`);
+			return;
+		}
+
+		const ongoingJobId = ongoingJobQuery.rows[0].id;
+
+		await client.sql`DELETE FROM "OngoingJob" WHERE "id" = ${ongoingJobId};`;
+
+		console.log(
+			`Removed ongoing job with ID: ${ongoingJobId} for task ID: ${taskId}`
+		);
+	} catch (error) {
+		console.error("Error removing ongoing job:", error);
+	}
+};
+
 const startBuildTaskContainer = async (taskData, receiptHandle) => {
 	console.log(`Starting container process for task: ${taskData.TaskId}`);
 	console.log(
@@ -41,7 +63,7 @@ const startBuildTaskContainer = async (taskData, receiptHandle) => {
 	// Run ECS EC2 task
 	const runTaskParams = {
 		cluster: clusterArn,
-		taskDefinition: "codehost-build-task",
+		taskDefinition: "CodeHost-build-task",
 		launchType: "EC2",
 		overrides: {
 			containerOverrides: [
@@ -74,8 +96,9 @@ const startBuildTaskContainer = async (taskData, receiptHandle) => {
 	} catch (error) {
 		console.error("Error starting ECS EC2 task:", error);
 
-		// Update task status in the database to 'FAILED'
 		await updateTaskStatus(taskData.TaskId, "FAILED");
+
+		await removeOngoingJobByTaskId(taskData.TaskId);
 
 		// Delete the message from the queue
 		const deleteParams = {
