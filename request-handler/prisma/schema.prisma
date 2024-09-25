@@ -97,7 +97,7 @@ model OngoingJob {
 
 enum ProjectStatus {
   ACTIVE
-  DISABLED
+  PAUSED
 }
 
 enum TaskStatus {
