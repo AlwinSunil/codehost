@@ -23,8 +23,14 @@ const getTargetUrl = async (prisma, subdomain) => {
 			select: {
 				id: true,
 				subdomain: true,
+				status: true,
 			},
 		});
+
+		if (project.status === "PAUSED") {
+			return null;
+		}
+
 		console.log("From DB:", project?.id);
 
 		if (project) {
@@ -47,7 +53,8 @@ const proxyRoutes = (prisma) => {
 		const targetUrl = await getTargetUrl(prisma, subdomain);
 
 		if (targetUrl) {
-			if (req.url === "/") req.url = "/index.html";
+			if (req.url === "/" || req.url === "/notfound")
+				req.url = "/index.html";
 
 			proxy.web(
 				req,
