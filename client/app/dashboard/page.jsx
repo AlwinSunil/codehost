@@ -83,8 +83,8 @@ export default async function DashboardHome() {
                   "ml-auto h-fit w-fit px-1 text-xs font-semibold",
                   project.status === "ACTIVE" &&
                     "border border-emerald-200 bg-emerald-50 text-emerald-500",
-                  project.status === "FAILED" &&
-                    "border border-red-200 bg-red-50 text-red-500",
+                  project.status === "PAUSED" &&
+                    "border border-yellow-200 bg-yellow-50 text-yellow-500",
                 )}
               >
                 {project.status}

@@ -5,14 +5,25 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { toast } from "sonner";
 
 import { deleteProject } from "@/app/project/[id]/actions/deleteProject";
+
+import { copyToClipboard, deployedURL, displayURL } from "./ProjectHeader";
+import { changeStatus } from "../actions/changeStatus";
+import { updateSubdomain } from "../actions/updateSubdomain";
+
+const ProjectStatus = {
+  ACTIVE: "ACTIVE",
+  PAUSED: "PAUSED",
+};
 
 function ProfileMenu({ project }) {
   const { data: session } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
+  // Function to delete the project
   const handleDeleteProject = async () => {
     const deleteCommand = `delete ${project.name}`;
     const action = window.prompt(
@@ -23,18 +34,79 @@ function ProfileMenu({ project }) {
       try {
         const response = await deleteProject(project.id);
         if (response.success) {
-          router.push("/dashboard");
+          router.push(`/dashboard`);
+          toast.success(response.message);
         } else {
-          alert(response.message);
+          toast.error(response.message);
         }
       } catch (error) {
         console.error("Error deleting project:", error);
-        alert("Error deleting project. Please try again later.");
+        toast.error("Error deleting project. Please try again later.");
       } finally {
         setIsLoading(false);
       }
     }
   };
+
+  // Function to update the subdomain
+  const handleEditSubdomain = async () => {
+    const newSubdomain = prompt(
+      "Please enter the new subdomain name:",
+      project.subdomain,
+    );
+    if (newSubdomain) {
+      setIsLoading(true);
+      try {
+        const response = await updateSubdomain(project.id, newSubdomain);
+        if (response.success) {
+          router.push(`/project/${project.id}`);
+          toast.success(response.message);
+        } else {
+          toast.error(response.message);
+        }
+      } catch (error) {
+        console.error("Error updating project:", error);
+        toast.error("Error updating project. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleChangeStatus = async () => {
+    const isProjectActive = project.status === ProjectStatus.ACTIVE;
+    const actionText = isProjectActive ? "pause" : "activate";
+    const newStatus = isProjectActive
+      ? ProjectStatus.PAUSED
+      : ProjectStatus.ACTIVE;
+
+    const action = window.prompt(
+      `If you're sure about changing the status of this project, type "${actionText}"`,
+    );
+
+    if (action === actionText) {
+      setIsLoading(true);
+      try {
+        const response = await changeStatus(project.id, newStatus);
+
+        if (response.success) {
+          router.push(`/project/${project.id}`);
+          toast.success(
+            `Project ${isProjectActive ? "paused" : "activated"} successfully`,
+          );
+        } else {
+          toast.error(response.message);
+        }
+      } catch (error) {
+        console.error(`Error changing project status:`, error);
+        toast.error("Error changing project status. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  if (!session) return null;
 
   if (!session) return null;
 
@@ -59,7 +131,10 @@ function ProfileMenu({ project }) {
         </Dialog.Trigger>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/20 shadow-sm backdrop-blur-0" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex h-[calc(100vh-4rem)] w-[90vw] -translate-x-1/2 -translate-y-1/2 transform flex-col gap-2 bg-white p-4 sm:p-6">
+          <Dialog.Content
+            className="fixed left-1/2 top-1/2 z-50 flex h-[calc(100vh-4rem)] w-[90vw] -translate-x-1/2 -translate-y-1/2 transform flex-col gap-2 bg-white p-4 sm:p-6"
+            modal={false}
+          >
             <Dialog.Title className="flex items-center justify-between px-1 font-medium">
               <span className="flex items-center gap-1 font-medium leading-4 tracking-tight">
                 <span>{project.name}</span>
@@ -78,10 +153,76 @@ function ProfileMenu({ project }) {
                 <p className="px-6 py-4 text-lg font-semibold">Loading...</p>
               </div>
             ) : (
-              <div className="mt-2 px-1">
-                <div className="flex flex-col">
+              <div className="mt-2 flex flex-col px-1">
+                <div className="mb-5 flex flex-col">
+                  <span className="text-lg font-semibold">Domain</span>
+                  <p className="text-sm leading-4 tracking-tight text-gray-600">
+                    This domain is assigned to your Production Deployment.
+                  </p>
+                  <div className="mt-4 flex items-center gap-1.5">
+                    <a
+                      href={deployedURL(project?.subdomain)}
+                      className="flex h-6 items-center justify-center rounded-sm border border-gray-200 bg-gray-50 px-2 font-sans text-sm hover:cursor-pointer hover:underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {displayURL(project?.subdomain)}
+                    </a>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-6 cursor-pointer items-center justify-center rounded-sm border border-gray-200 p-1 text-black shadow-inner hover:bg-gray-100"
+                      onClick={() => copyToClipboard(deployedURL)}
+                    >
+                      <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                      <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                      <path d="M16 4h2a2 2 0 0 1 2 2v4" />
+                      <path d="M21 14H11" />
+                      <path d="m15 10-4 4 4 4" />
+                    </svg>
+                  </div>
+                  <button
+                    className="mt-4 w-fit bg-black px-3 py-1 text-sm font-semibold text-white hover:cursor-pointer"
+                    onClick={handleEditSubdomain}
+                  >
+                    Edit subdomain
+                  </button>
+                  <p className="mt-2 font-sans text-sm text-gray-500">
+                    *Once updated, the previous domain will no longer be
+                    accessible.
+                  </p>
+                </div>
+                <hr />
+                <div className="mb-5 mt-4 flex flex-col">
+                  <span className="text-lg font-semibold">
+                    {project.status === "ACTIVE" ? "Pause" : "Enable"} Project
+                  </span>
+                  <p className="text-sm leading-4 tracking-tight text-gray-600">
+                    This will make your project{" "}
+                    {project.status === "ACTIVE"
+                      ? "inaccessible via URL and block any further deployments until re-enabled."
+                      : "accessible and allow future deployments."}
+                  </p>
+                  <button
+                    className={`mt-3 w-fit border px-3 py-1 text-sm font-semibold ${
+                      project.status === "ACTIVE"
+                        ? "border-yellow-300 bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
+                        : "border-green-300 bg-green-50 text-green-600 hover:bg-green-100"
+                    }`}
+                    onClick={handleChangeStatus}
+                  >
+                    {project.status === "ACTIVE" ? "Pause" : "Activate"} Project
+                  </button>
+                </div>
+                <hr className="border-2" />
+                <div className="mt-4 flex flex-col">
                   <span className="text-lg font-semibold">Danger Zone</span>
-                  <p className="text-sm leading-4 text-gray-600">
+                  <p className="text-sm leading-4 tracking-tight text-gray-600">
                     This action cannot be undone.
                   </p>
                   <button

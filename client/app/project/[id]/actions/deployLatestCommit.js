@@ -2,6 +2,7 @@
 
 import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
 
+import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 import getLatestCommit from "./getLatestCommit";
@@ -10,17 +11,32 @@ export default async function deployLatestCommit(id, repo, branch) {
   try {
     const latestCommit = await getLatestCommit(id, repo, branch);
 
+    const session = await getServerSession(authConfig);
+
+    if (!session || !session.user) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    const userId = session.user.id;
+
     if (!latestCommit.newCommits) {
       return { success: false, message: "No new commits to deploy" };
     }
 
     return await prisma.$transaction(async (prisma) => {
       const project = await prisma.project.findUnique({
-        where: { id },
+        where: { id, userId },
       });
 
       if (!project) {
         return { success: false, message: "Project not found" };
+      }
+
+      if (project.status === "PAUSED") {
+        return {
+          success: false,
+          message: "Project is paused, therefore cannot be deployed",
+        };
       }
 
       const task = await prisma.task.create({

@@ -1,21 +1,27 @@
 "use client";
 
+import clsx from "clsx";
 import { toast } from "sonner";
 
 import ProjectSettings from "./ProjectSettings";
 
+export const copyToClipboard = (deployedURL) => {
+  navigator.clipboard.writeText(deployedURL);
+  toast.info("Copied to clipboard!", { duration: 1000 });
+};
+
+export const isLocal = process.env.NODE_ENV === "development";
+export const protocol = isLocal ? "http" : "https";
+
+export const displayURL = (subdomain) => {
+  return `${subdomain}.${process.env.NEXT_PUBLIC_BASE_URL}`;
+};
+
+export const deployedURL = (subdomain) => {
+  return `${protocol}://${subdomain}.${process.env.NEXT_PUBLIC_BASE_URL}`;
+};
+
 export default function ProjectHeader({ project }) {
-  const copyToClipboard = (deployedURL) => {
-    navigator.clipboard.writeText(deployedURL);
-    toast.info("Copied to clipboard!", { duration: 1000 });
-  };
-
-  const isLocal = process.env.NODE_ENV === "development";
-  const protocol = isLocal ? "http" : "https";
-
-  const displayURL = `${project?.subdomain}.${process.env.NEXT_PUBLIC_BASE_URL}`;
-  const deployedURL = `${protocol}://${project?.subdomain}.${process.env.NEXT_PUBLIC_BASE_URL}`;
-
   return (
     <>
       <div className="relative flex justify-center gap-5 pb-6 pt-6">
@@ -25,15 +31,28 @@ export default function ProjectHeader({ project }) {
           alt="Profile Picture"
         />
         <div className="flex min-w-80 flex-col gap-1">
-          <h1 className="text-2xl font-semibold">{project?.name}</h1>
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-2xl font-semibold">{project?.name}</h1>
+            <span
+              className={clsx(
+                "mr-auto h-fit w-fit px-1 text-xs font-semibold",
+                project.status === "ACTIVE" &&
+                  "border border-emerald-200 bg-emerald-50 text-emerald-500",
+                project.status === "PAUSED" &&
+                  "border border-yellow-200 bg-yellow-50 text-yellow-500",
+              )}
+            >
+              {project.status}
+            </span>
+          </div>
           <div className="mt-0.5 flex items-center gap-1.5">
             <a
-              href={deployedURL}
+              href={deployedURL(project?.subdomain)}
               className="flex h-6 items-center justify-center rounded-sm border border-gray-200 px-2 font-sans text-sm shadow-inner hover:cursor-pointer hover:underline"
               target="_blank"
               rel="noreferrer"
             >
-              {displayURL}
+              {displayURL(project?.subdomain)}
             </a>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -53,6 +72,13 @@ export default function ProjectHeader({ project }) {
               <path d="m15 10-4 4 4 4" />
             </svg>
           </div>
+          {project.status === "ACTIVE" ? (
+            <p className="mt-1 font-sans text-xs leading-4 tracking-tight text-gray-600">
+              *Activate project in settings to make url accessable and for new
+              deployments
+            </p>
+          ) : null}
+          <div></div>
         </div>
         <ProjectSettings project={project} />
       </div>
