@@ -59,7 +59,7 @@ function ProfileMenu({ project }) {
       try {
         const response = await updateSubdomain(project.id, newSubdomain);
         if (response.success) {
-          router.push(`/project/${project.id}`);
+          router.refresh();
           toast.success(response.message);
         } else {
           toast.error(response.message);
@@ -90,7 +90,7 @@ function ProfileMenu({ project }) {
         const response = await changeStatus(project.id, newStatus);
 
         if (response.success) {
-          router.push(`/project/${project.id}`);
+          router.refresh();
           toast.success(
             `Project ${isProjectActive ? "paused" : "activated"} successfully`,
           );

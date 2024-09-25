@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 
 import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { redis } from "@/lib/upstash";
 
 const ProjectStatus = {
   ACTIVE: "ACTIVE",
@@ -37,6 +38,8 @@ export async function changeStatus(projectId, status) {
           message: `Project is already ${status}`,
         };
       }
+
+      await redis.del(project.subdomain);
 
       await prisma.project.update({
         where: {

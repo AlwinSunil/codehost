@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 
 import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { redis } from "@/lib/upstash";
 
 export async function updateSubdomain(projectId, subdomain) {
   console.log(projectId, subdomain);
@@ -48,6 +49,8 @@ export async function updateSubdomain(projectId, subdomain) {
     if (existingSubdomain) {
       return { success: false, message: "This subdomain is already in use" };
     }
+
+    await redis.del(project.subdomain);
 
     await prisma.project.update({
       where: {

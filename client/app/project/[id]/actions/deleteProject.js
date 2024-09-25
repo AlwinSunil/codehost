@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 
 import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { redis } from "@/lib/upstash";
 
 export async function deleteProject(projectId) {
   const session = await getServerSession(authConfig);
@@ -71,6 +72,14 @@ export async function deleteProject(projectId) {
           },
         },
       });
+
+      const project = await prisma.project.findUnique({
+        where: {
+          id: projectId,
+        },
+      });
+
+      await redis.del(project.subdomain);
 
       await prisma.project.delete({
         where: {
