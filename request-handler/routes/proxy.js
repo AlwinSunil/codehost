@@ -11,11 +11,11 @@ const proxy = httpProxy.createProxyServer();
 
 const getTargetUrl = async (prisma, subdomain) => {
 	try {
-		const cachedProjectId = await redis.get(subdomain);
+		const cachedProjectDir = await redis.get(subdomain);
 
-		if (cachedProjectId) {
-			console.log("From cache:", cachedProjectId);
-			return `${BASE_PATH}/${cachedProjectId}/`;
+		if (cachedProjectDir) {
+			console.log("From cache:", cachedProjectDir);
+			return `${BASE_PATH}/${cachedProjectDir}/`;
 		}
 
 		const project = await prisma.project.findUnique({
@@ -24,6 +24,7 @@ const getTargetUrl = async (prisma, subdomain) => {
 				id: true,
 				subdomain: true,
 				status: true,
+				productionTaskId: true,
 			},
 		});
 
@@ -34,9 +35,13 @@ const getTargetUrl = async (prisma, subdomain) => {
 		console.log("From DB:", project?.id);
 
 		if (project) {
-			await redis.set(subdomain, project.id, { ex: 172800 });
+			await redis.set(
+				subdomain,
+				`${project.id}/${project.productionTaskId}`,
+				{ ex: 172800 }
+			);
 
-			return `${BASE_PATH}/${project.id}/`;
+			return `${BASE_PATH}/${project.id}/${project.productionTaskId}/`;
 		}
 
 		return null;
