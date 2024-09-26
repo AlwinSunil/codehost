@@ -72,13 +72,12 @@ export default function ProjectHeader({ project }) {
               <path d="m15 10-4 4 4 4" />
             </svg>
           </div>
-          {project.status === "ACTIVE" ? (
+          {project.status === "PAUSED" ? (
             <p className="mt-1 font-sans text-xs leading-4 tracking-tight text-gray-600">
               *Activate project in settings to make url accessable and for new
               deployments
             </p>
           ) : null}
-          <div></div>
         </div>
         <ProjectSettings project={project} />
       </div>
