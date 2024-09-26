@@ -5,6 +5,8 @@ import { createClient } from "redis";
 const prisma = new PrismaClient();
 const redisClient = createClient();
 
+const projectId = process.env.PROJECT_ID;
+
 async function initRedis() {
 	try {
 		await redisClient.connect();
@@ -29,6 +31,13 @@ async function updateTaskStatus(taskId, status) {
 			await prisma.ongoingJob.deleteMany({
 				where: { taskId: taskId },
 			});
+
+			if (status === "COMPLETED") {
+				await prisma.project.update({
+					where: { id: projectId },
+					data: { productionTaskId: taskId },
+				});
+			}
 		}
 		return updatedTask;
 	} catch (error) {

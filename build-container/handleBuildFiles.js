@@ -3,6 +3,7 @@ import path from "path";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import pLimit from "p-limit";
 import mime from "mime-types";
+import { PrismaClient } from "@prisma/client";
 
 const CLOUDFLARE_R2_ACCESS_KEY_ID = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
 const CLOUDFLARE_R2_SECRET_ACCESS_KEY =
@@ -13,6 +14,7 @@ const DEPLOYMENT_DIR_NAME = process.env.DEPLOYMENT_DIR_NAME;
 
 const outputDirectory = process.env.OUTPUT_DIR;
 const projectId = process.env.PROJECT_ID;
+const taskId = process.env.TASK_ID;
 
 console.log(`Build directory for the project: ${outputDirectory}`);
 
@@ -66,7 +68,7 @@ async function uploadDirectoryToS3(dir, basePath = "") {
 				uploadDirectoryToS3(itemPath, `${basePath}${item}/`)
 			);
 		} else {
-			const key = `${DEPLOYMENT_DIR_NAME}/${projectId}/${basePath}${item}`;
+			const key = `${DEPLOYMENT_DIR_NAME}/${projectId}/${taskId}/${basePath}${item}`;
 			return limit(() => uploadFileToS3(itemPath, key));
 		}
 	});
@@ -96,6 +98,7 @@ function displayProgress() {
 		clearInterval(progressInterval);
 		displayProgress();
 		console.log("Files successfully moved for deployment.");
+
 		process.exit(0);
 	} catch (err) {
 		console.error(
