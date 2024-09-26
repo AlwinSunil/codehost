@@ -193,3 +193,5 @@ fi
 
 # Clean up
 rm "$PIPE"
+
+sleep 2s
