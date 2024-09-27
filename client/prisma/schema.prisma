@@ -39,6 +39,9 @@ model Project {
   tasks     Task[]
   avatar    String
 
+  productionTaskId String? @unique
+  productionTask   Task?   @relation("ProductionTask", fields: [productionTaskId], references: [id])
+
   rootDir        String
   preset         Preset
   installCommand String
@@ -71,7 +74,10 @@ model Task {
   OngoingJob    OngoingJob?
   TaskLogs      TaskLogs[]
 
+  projectAsProduction Project? @relation("ProductionTask")
+
   @@index([userId], name: "idx_user_id")
+  @@index([projectId], name: "idx_project_id")
 }
 
 model TaskLogs {
