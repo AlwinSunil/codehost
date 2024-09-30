@@ -1,5 +1,9 @@
 import { SQSClient, DeleteMessageCommand } from "@aws-sdk/client-sqs";
-import { ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs";
+import {
+	ECSClient,
+	RunTaskCommand,
+	DescribeClustersCommand,
+} from "@aws-sdk/client-ecs";
 import { db } from "@vercel/postgres";
 
 const sqs = new SQSClient();
@@ -18,7 +22,8 @@ const initDb = async () => {
 
 const updateTaskStatus = async (taskId, status) => {
 	try {
-		await client.sql`UPDATE "Task" SET "status" = ${status}, "lastUpdated" = NOW() WHERE id = ${taskId};`;
+		const currentTimestamp = new Date().toISOString();
+		await client.sql`UPDATE "Task" SET "status" = ${status}, "lastUpdated" = ${currentTimestamp} WHERE id = ${taskId};`;
 	} catch (error) {
 		console.error(`Failed to update status for task ${taskId}:`, error);
 		throw error;
@@ -47,6 +52,27 @@ const removeOngoingJobByTaskId = async (taskId) => {
 	}
 };
 
+const isEc2Available = async () => {
+	try {
+		const describeClustersParams = {
+			clusters: [clusterArn],
+			include: ["STATISTICS"],
+		};
+		const describeClustersResponse = await ecs.send(
+			new DescribeClustersCommand(describeClustersParams)
+		);
+		const cluster = describeClustersResponse.clusters[0];
+
+		const ec2InstanceCount = cluster.registeredContainerInstancesCount;
+		console.log(`Available EC2 instances: ${ec2InstanceCount}`);
+
+		return ec2InstanceCount > 0;
+	} catch (error) {
+		console.error("Error describing ECS cluster:", error);
+		return false;
+	}
+};
+
 const startBuildTaskContainer = async (taskData, receiptHandle) => {
 	console.log(`Starting container process for task: ${taskData.TaskId}`);
 	console.log(
@@ -59,6 +85,14 @@ const startBuildTaskContainer = async (taskData, receiptHandle) => {
 		`${taskData.Preset} | ${taskData.InstallCommand} | ${taskData.BuildCommand} | ${taskData.OutputDir}`
 	);
 	console.log(`Build Command: ${taskData.BuildCommand}`);
+
+	const ec2Available = await isEc2Available();
+	if (!ec2Available) {
+		console.log(
+			"No EC2 instances are available. Keeping message in the queue for retry."
+		);
+		return;
+	}
 
 	// Run ECS EC2 task
 	const runTaskParams = {
@@ -89,31 +123,28 @@ const startBuildTaskContainer = async (taskData, receiptHandle) => {
 	};
 
 	try {
+		// Update task status to 'STARTING'
+		await updateTaskStatus(taskData.TaskId, "STARTING");
+
 		const runTaskResponse = await ecs.send(
 			new RunTaskCommand(runTaskParams)
 		);
 		console.log("ECS EC2 task started:", runTaskResponse.tasks[0].taskArn);
-	} catch (error) {
-		console.error("Error starting ECS EC2 task:", error);
 
-		await updateTaskStatus(taskData.TaskId, "FAILED");
-
-		await removeOngoingJobByTaskId(taskData.TaskId);
-
-		// Delete the message from the queue
 		const deleteParams = {
 			QueueUrl: queueUrl,
 			ReceiptHandle: receiptHandle,
 		};
 
-		try {
-			await sqs.send(new DeleteMessageCommand(deleteParams));
-			console.log("Message processed and deleted.");
-		} catch (deleteError) {
-			console.error("Error deleting message:", deleteError);
-		}
+		await sqs.send(new DeleteMessageCommand(deleteParams));
+		console.log("Message processed and deleted.");
+	} catch (error) {
+		console.error("Error starting ECS EC2 task:", error);
 
-		throw error;
+		await updateTaskStatus(taskData.TaskId, "FAILED");
+		await removeOngoingJobByTaskId(taskData.TaskId);
+
+		console.log("Message will remain in the queue for retries.");
 	}
 };
 
@@ -135,11 +166,13 @@ export const handler = async (event) => {
 			OutputDir: messageAttributes.OutputDir.stringValue,
 		};
 
-		// Update task status to 'STARTING'
-		await updateTaskStatus(taskData.TaskId, "STARTING");
-
 		// Start the ECS task
 		await startBuildTaskContainer(taskData, record.receiptHandle);
+	}
+
+	if (client) {
+		await client.release();
+		client = null;
 	}
 
 	return {
