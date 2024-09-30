@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
 
-import { fetchTaskDetails as fetchTaskDetailsAction } from "./actions/fetchTaskDetails";
-import { fetchTaskLogs } from "./actions/fetchTaskLogs";
+import { fetchTaskDetailsAndLogs } from "./actions/fetchTaskDetailsAndLogs";
 import { useProject } from "../Context/ProjectContext";
 
 const statusClasses = {
@@ -21,80 +19,87 @@ const statusClasses = {
 };
 
 export default function Task({ params }) {
-  const router = useRouter();
   const project = useProject();
+  const logsRef = useRef(null);
 
-  const [logs, setLogs] = useState([]);
-  const [status, setStatus] = useState("PENDING");
-  const [error, setError] = useState(null);
-  const [lastFetchedTime, setLastFetchedTime] = useState(null);
-  const [isFetching, setIsFetching] = useState(false);
-  const [taskDetails, setTaskDetails] = useState(null);
+  const [data, setData] = useState({
+    logs: [],
+    status: "PENDING",
+    error: null,
+    lastFetchedTime: null,
+    taskDetails: null,
+    taskDuration: null,
+  });
+  const [isFetching, setIsFetching] = useState(true);
 
-  const fetchLogs = async (taskId, lastLogTime) => {
-    if (!taskDetails) return; // Only fetch logs if taskDetails are available
+  const fetch = useCallback(async () => {
+    if (data.status === "COMPLETED" || data.status === "FAILED") {
+      return;
+    }
 
     try {
       setIsFetching(true);
-      const data = await fetchTaskLogs(taskId, lastLogTime);
-      const { logs: newLogs, status: taskStatus } = data;
 
-      if (data.success) {
-        if (newLogs.length > 0) {
-          setLogs((prevLogs) => [...prevLogs, ...newLogs]);
-          setLastFetchedTime(newLogs[newLogs.length - 1].loggedAt); // Update last fetched time
-        }
-        setStatus(taskStatus);
-      } else {
-        setError(data.error);
-      }
-      setIsFetching(false);
-    } catch (err) {
-      setError(err.message);
-      setIsFetching(false);
-    }
-  };
+      // Pass the last log time to the server action to get only new logs
+      const response = await fetchTaskDetailsAndLogs(
+        params.taskId,
+        data.lastFetchedTime,
+      );
 
-  const fetchTaskDetails = async (taskId) => {
-    try {
-      const response = await fetchTaskDetailsAction(taskId);
+      if (response.success) {
+        setData((prevData) => {
+          const startTime = new Date(response.task.startedAt);
+          const endTime = new Date(response.task.lastUpdated);
+          const duration = Math.floor((endTime - startTime) / 1000);
 
-      if (response && response.success) {
-        console.log("Fetched task details successfully:", response.task);
-        setTaskDetails(response.task);
-        setError(null);
-      } else {
-        console.error("Error fetching task details:", response?.error);
-        setError(response?.error || "Task details not found.");
-        if (response?.error === "Task not found") {
-          router.push("/not-found");
-        }
+          return {
+            ...prevData,
+            taskDetails: response.task,
+            // Append new logs to the existing logs
+            logs: [...prevData.logs, ...response.logs],
+            status: response.task.status,
+            lastFetchedTime:
+              response.logs.length > 0
+                ? response.logs[response.logs.length - 1].loggedAt // Update last fetched time
+                : prevData.lastFetchedTime,
+            taskDuration: duration,
+          };
+        });
       }
     } catch (err) {
-      console.error("An error occurred:", err);
-      setError("Failed to fetch task details.");
+      console.error(err);
+      setData((prevData) => ({
+        ...prevData,
+        error: "Failed to fetch task details and logs",
+      }));
+    } finally {
+      setIsFetching(false);
     }
-  };
+  }, [params.taskId, data.status, data.lastFetchedTime]);
 
   useEffect(() => {
-    fetchTaskDetails(params.taskId);
-  }, [params.taskId]);
+    fetch();
 
-  useEffect(() => {
-    if (status === "COMPLETED" || status === "FAILED") {
-      return; // Stop polling if the task is completed or failed
-    }
-
-    // Poll every 3500 milliseconds for updates
     const intervalId = setInterval(() => {
-      if (!isFetching && taskDetails) {
-        fetchLogs(params.taskId, lastFetchedTime); // Pass the last fetched log time
+      if (data.status !== "COMPLETED" && data.status !== "FAILED") {
+        fetch();
       }
     }, 3500);
 
-    // Clean up interval on component unmount
     return () => clearInterval(intervalId);
-  }, [params.taskId, status, lastFetchedTime, isFetching, taskDetails]);
+  }, [fetch, data.status]);
+
+  useEffect(() => {
+    if (logsRef.current) {
+      logsRef.current.scrollTop = logsRef.current.scrollHeight;
+    }
+  }, [data.logs]);
+
+  const formatDuration = (duration) => {
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+    return `${minutes}m ${seconds}s`;
+  };
 
   return (
     <div className="">
@@ -131,71 +136,83 @@ export default function Task({ params }) {
       {/* Task Details */}
       <div className="mb-4">
         <h2 className="mb-2.5 text-lg font-semibold">Task details</h2>
-        {taskDetails ? (
+        {data.taskDetails ? (
           <div className="flex flex-col gap-4 border p-5 pt-4">
-            <div className="flex flex-col gap-1.5">
-              <span className="font-sans text-sm text-gray-600">Source</span>
-              <a
-                href={`${project.repoLink}/commit/${taskDetails.commitHash}`}
-                target="_blank"
-                rel="noreferrer"
-                className="group flex w-fit items-center gap-4 text-sm"
-              >
-                <p className="flex items-center gap-1.5 text-black group-hover:underline">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4 text-black"
-                  >
-                    <circle cx="12" cy="12" r="3" />
-                    <line x1="3" x2="9" y1="12" y2="12" />
-                    <line x1="15" x2="21" y1="12" y2="12" />
-                  </svg>
-                  {taskDetails.commitHash.slice(0, 7)}
-                </p>
-                <p className="w-72 truncate text-xs text-gray-700">
-                  {taskDetails.commitMessage}
-                </p>
-              </a>
+            <div className="grid grid-cols-3">
+              <div className="col-span-2 flex flex-col gap-1.5">
+                <span className="font-sans text-sm text-gray-600">Source</span>
+                <a
+                  href={`${project.repoLink}/commit/${data.taskDetails.commitHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex w-fit items-center gap-4 text-sm"
+                >
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-black group-hover:underline">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4 text-black"
+                    >
+                      <circle cx="12" cy="12" r="3" />
+                      <line x1="3" x2="9" y1="12" y2="12" />
+                      <line x1="15" x2="21" y1="12" y2="12" />
+                    </svg>
+                    {data.taskDetails.commitHash.slice(0, 7)}
+                  </p>
+                  <p className="w-72 truncate text-xs text-gray-700">
+                    {data.taskDetails.commitMessage}
+                  </p>
+                </a>
+              </div>
+              <p className="col-span-1 row-span-1 flex flex-col gap-1 text-sm">
+                <span className="font-sans text-gray-600">Created at</span>
+                <span className="font-medium tracking-tight">
+                  {new Date(data.taskDetails.startedAt).toLocaleString(
+                    "en-US",
+                    {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "numeric",
+                      second: "numeric",
+                    },
+                  )}
+                </span>
+              </p>
             </div>
-
             <div className="flex">
               <p className="flex flex-1 flex-col gap-1 text-sm">
                 <span className="font-sans text-gray-600">Status</span>
                 <span
                   className={clsx(
                     "w-fit rounded-sm border px-2 text-sm font-semibold tracking-tight shadow-inner",
-                    statusClasses[taskDetails.status] ||
+                    statusClasses[data.taskDetails.status] ||
                       "border-gray-200 bg-gray-50 text-gray-500",
                   )}
                 >
-                  {taskDetails.status}
+                  {data.taskDetails.status}
                 </span>
               </p>
               <p className="flex flex-1 flex-col gap-1 text-sm">
                 <span className="font-sans text-gray-600">Last Updated</span>
                 <span className="font-medium">
-                  {formatDistanceToNow(new Date(taskDetails.lastUpdated), {
+                  {formatDistanceToNow(new Date(data.taskDetails.lastUpdated), {
                     addSuffix: true,
                   })}
                 </span>
               </p>
               <p className="flex flex-1 flex-col gap-1 text-sm">
-                <span className="font-sans text-gray-600">Started at</span>
-                <span className="font-medium tracking-tight">
-                  {new Date(taskDetails.startedAt).toLocaleString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "numeric",
-                    second: "numeric",
-                  })}
+                <span className="font-sans text-gray-600">Duration</span>
+                <span className="font-medium tracking-normal">
+                  {data.taskDuration
+                    ? formatDuration(data.taskDuration)
+                    : "--m --s"}
                 </span>
               </p>
             </div>
@@ -211,11 +228,16 @@ export default function Task({ params }) {
       <div className="border p-4">
         <h2 className="mb-2.5 text-lg font-semibold">Deployment task logs</h2>
 
-        {isFetching ? (
+        {isFetching && (
           <p className="text-sm font-medium text-gray-600">Fetching logs...</p>
-        ) : !error && logs.length > 0 ? (
-          <div className="h-96 overflow-y-scroll border bg-gray-50 px-4 py-2">
-            {logs.map((log, index) => (
+        )}
+
+        {!data.error && data.logs.length > 0 && (
+          <div
+            ref={logsRef}
+            className="h-96 overflow-y-scroll border bg-gray-50 px-4 py-2"
+          >
+            {data.logs.map((log, index) => (
               <div
                 key={index}
                 className="flex gap-2 border-b border-gray-300 px-2 py-1.5 last:border-0"
@@ -227,13 +249,15 @@ export default function Task({ params }) {
               </div>
             ))}
           </div>
-        ) : null}
+        )}
 
-        {!error && !isFetching && logs.length === 0 && (
+        {!data.error && !isFetching && data.logs.length === 0 && (
           <p className="text-sm text-gray-600">No logs available.</p>
         )}
 
-        {error && <p className="text-sm font-medium text-red-500">{error}</p>}
+        {data.error && (
+          <p className="text-sm font-medium text-red-500">{data.error}</p>
+        )}
       </div>
     </div>
   );

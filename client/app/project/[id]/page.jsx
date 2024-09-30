@@ -20,8 +20,6 @@ export default function Project() {
   const { data: session } = useSession();
   const project = useProject();
 
-  console.log("project", project);
-
   if (!project) {
     return <div>Loading...</div>;
   }
