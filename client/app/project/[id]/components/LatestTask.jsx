@@ -10,7 +10,7 @@ import { fetchLatestTask } from "../actions/fetchLatestTask";
 import { useTaskRefetch } from "../Context/TaskRefetchContext";
 
 const statusClasses = {
-  ON_QUEUE: "border-yellow-400 bg-yellow-100 text-yellow-700",
+  IN_QUEUE: "border-yellow-400 bg-yellow-100 text-yellow-700",
   STARTING: "border-blue-400 bg-blue-100 text-blue-700",
   BUILDING: "border-purple-400 bg-purple-100 text-purple-700",
   COMPLETED: "border-green-400 bg-green-100 text-green-700",

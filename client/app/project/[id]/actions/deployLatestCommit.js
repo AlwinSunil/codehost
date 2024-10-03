@@ -41,7 +41,7 @@ export default async function deployLatestCommit(id, repo, branch) {
 
       const task = await prisma.task.create({
         data: {
-          status: "ON_QUEUE",
+          status: "IN_QUEUE",
           commitHash: latestCommit.commitHash,
           commitMessage: latestCommit.commitMessage,
           userId: project.userId,

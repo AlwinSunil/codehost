@@ -120,7 +120,7 @@ export async function createProject(
 
       const task = await prisma.task.create({
         data: {
-          status: "ON_QUEUE",
+          status: "IN_QUEUE",
           commitHash: latestCommit.sha,
           commitMessage: latestCommit.commit.message,
           userId,
