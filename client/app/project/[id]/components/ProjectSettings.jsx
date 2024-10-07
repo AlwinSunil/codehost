@@ -132,7 +132,7 @@ function ProfileMenu({ project }) {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/20 shadow-sm backdrop-blur-0" />
           <Dialog.Content
-            className="fixed left-1/2 top-1/2 z-50 flex h-[calc(100vh-4rem)] w-[90vw] -translate-x-1/2 -translate-y-1/2 transform flex-col gap-2 bg-white p-4 sm:p-6"
+            className="fixed left-1/2 top-1/2 z-50 flex h-[calc(100vh-5rem)] w-[90vw] max-w-screen-xl -translate-x-1/2 -translate-y-1/2 transform flex-col gap-2 bg-white p-4 sm:p-6"
             modal={false}
           >
             <Dialog.Title className="flex items-center justify-between px-1 font-medium">

@@ -26,7 +26,7 @@ export default async function RootLayout({ children }) {
       >
         <SessionProvider session={session}>
           <Navbar />
-          {children}
+          <div className="mx-auto w-full max-w-screen-xl">{children}</div>
           <Footer />
           <ToastProvider />
         </SessionProvider>
