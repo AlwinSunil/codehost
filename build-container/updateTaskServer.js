@@ -8,14 +8,6 @@ import {
 	DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 
-const prisma = new PrismaClient();
-const logsRedisClient = createClient();
-
-const domainRedisClient = new Redis({
-	url: process.env.UPSTASH_REDIS_URL,
-	token: process.env.UPSTASH_REDIS_TOKEN,
-});
-
 const projectId = process.env.PROJECT_ID;
 
 const CLOUDFLARE_R2_ACCESS_KEY_ID = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
@@ -24,6 +16,14 @@ const CLOUDFLARE_R2_SECRET_ACCESS_KEY =
 const CLOUDFLARE_R2_ENDPOINT = process.env.CLOUDFLARE_R2_ENDPOINT;
 const CLOUDFLARE_R2_BUCKET_NAME = process.env.CLOUDFLARE_R2_BUCKET_NAME;
 const DEPLOYMENT_DIR_NAME = process.env.DEPLOYMENT_DIR_NAME;
+
+const prisma = new PrismaClient();
+const logsRedisClient = createClient();
+
+const domainRedisClient = new Redis({
+	url: process.env.UPSTASH_REDIS_URL,
+	token: process.env.UPSTASH_REDIS_TOKEN,
+});
 
 const s3Client = new S3Client({
 	region: "auto",
@@ -85,14 +85,13 @@ async function updateTaskStatus(taskId, status) {
 
 async function cleanupOldDeployments(projectId) {
 	try {
-		// Get the last two completed tasks
 		const lastTwoCompletedTasks = await prisma.task.findMany({
 			where: {
 				projectId: projectId,
 				status: "COMPLETED",
 			},
 			orderBy: {
-				completedAt: "desc",
+				completedAt: "asc",
 			},
 			take: 2,
 			select: {
@@ -104,7 +103,6 @@ async function cleanupOldDeployments(projectId) {
 			lastTwoCompletedTasks.map((task) => task.id)
 		);
 
-		// List all task folders in the project's R2 directory
 		const prefix = `${process.env.DEPLOYMENT_DIR_NAME}/${projectId}/`;
 		const listParams = {
 			Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
@@ -120,17 +118,17 @@ async function cleanupOldDeployments(projectId) {
 			return;
 		}
 
-		const foldersToDelete = listedObjects.CommonPrefixes.map(
+		const allTaskIds = listedObjects.CommonPrefixes.map(
 			(prefix) => prefix.Prefix.split("/")[2]
-		).filter((taskId) => !tasksToKeep.has(taskId));
+		);
+
+		const foldersToDelete = allTaskIds.filter(
+			(taskId) => !tasksToKeep.has(taskId)
+		);
 
 		for (const taskId of foldersToDelete) {
 			await deleteTaskDeployment(projectId, taskId);
 		}
-
-		console.log(
-			`Cleaned up deployments for ${foldersToDelete.length} old tasks.`
-		);
 	} catch (error) {
 		console.error(`Error cleaning up old deployments: ${error.message}`);
 	}
