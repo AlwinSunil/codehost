@@ -113,6 +113,9 @@ check_internal_env_var "DEPLOYMENT_DIR_NAME" "$DEPLOYMENT_DIR_NAME"
 check_internal_env_var "POSTGRES_PRISMA_URL" "$POSTGRES_PRISMA_URL"
 check_internal_env_var "POSTGRES_URL_NON_POOLING" "$POSTGRES_URL_NON_POOLING"
 
+check_internal_env_var "UPSTASH_REDIS_URL" "$UPSTASH_REDIS_URL"
+check_internal_env_var "UPSTASH_REDIS_TOKEN" "$UPSTASH_REDIS_TOKEN"
+
 # Check and validate other variables
 check_project_env_var "PROJECT_ID" "$PROJECT_ID"
 check_project_env_var "TASK_ID" "$TASK_ID"

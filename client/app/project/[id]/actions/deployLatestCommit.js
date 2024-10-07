@@ -6,7 +6,6 @@ import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
 
 import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { redis } from "@/lib/upstash";
 
 import getLatestCommit from "./getLatestCommit";
 
@@ -77,8 +76,6 @@ export default async function deployLatestCommit(id, repo, branch) {
         project.buildCommand,
         project.outputDir,
       );
-
-      await redis.del(project.subdomain);
 
       return { success: true, message: "Task started successfully" };
     });

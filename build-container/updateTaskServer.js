@@ -1,5 +1,6 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
+import { Redis } from "@upstash/redis";
 import { createClient } from "redis";
 import {
 	S3Client,
@@ -8,7 +9,12 @@ import {
 } from "@aws-sdk/client-s3";
 
 const prisma = new PrismaClient();
-const redisClient = createClient();
+const logsRedisClient = createClient();
+
+const domainRedisClient = new Redis({
+	url: process.env.UPSTASH_REDIS_URL,
+	token: process.env.UPSTASH_REDIS_TOKEN,
+});
 
 const projectId = process.env.PROJECT_ID;
 
@@ -30,7 +36,7 @@ const s3Client = new S3Client({
 
 async function initRedis() {
 	try {
-		await redisClient.connect();
+		await logsRedisClient.connect();
 		console.log("Connected to Redis");
 	} catch (error) {
 		handleError(`Failed to connect to Redis: ${error.message}`);
@@ -54,12 +60,21 @@ async function updateTaskStatus(taskId, status) {
 			});
 
 			if (status === "COMPLETED") {
-				await prisma.project.update({
+				const updatedProject = await prisma.project.update({
 					where: { id: projectId },
 					data: { productionTaskId: taskId },
+					select: {
+						id: true,
+						subdomain: true,
+					},
 				});
 
 				await cleanupOldDeployments(projectId);
+
+				await domainRedisClient.del(updatedProject.subdomain);
+				console.log(
+					`Deleted Redis key for subdomain: ${updatedProject.subdomain}`
+				);
 			}
 		}
 		return updatedTask;
@@ -105,7 +120,6 @@ async function cleanupOldDeployments(projectId) {
 			return;
 		}
 
-		// Extracting taskId from the prefix
 		const foldersToDelete = listedObjects.CommonPrefixes.map(
 			(prefix) => prefix.Prefix.split("/")[2]
 		).filter((taskId) => !tasksToKeep.has(taskId));
@@ -158,7 +172,7 @@ async function deleteTaskDeployment(projectId, taskId) {
 
 async function processLogs() {
 	try {
-		const logs = await redisClient.lRange("logs", 0, -1);
+		const logs = await logsRedisClient.lRange("logs", 0, -1);
 		if (logs.length > 0) {
 			const taskId = process.env.TASK_ID;
 
@@ -179,7 +193,7 @@ async function processLogs() {
 				data: processedLogs,
 			});
 
-			await redisClient.lTrim("logs", logs.length, -1);
+			await logsRedisClient.lTrim("logs", logs.length, -1);
 		}
 	} catch (error) {
 		console.error(
@@ -227,7 +241,7 @@ app.post("/api/task/log", async (req, res) => {
 		const timestamp = new Date().toISOString();
 
 		const logEntry = JSON.stringify({ log, timestamp });
-		await redisClient.lPush("logs", logEntry);
+		await logsRedisClient.lPush("logs", logEntry);
 
 		res.status(200).json({
 			message: "Log added",
