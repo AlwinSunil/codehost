@@ -1,8 +1,9 @@
-import { SQSClient, DeleteMessageCommand } from "@aws-sdk/client-sqs";
+import { SQSClient, ChangeMessageVisibilityCommand } from "@aws-sdk/client-sqs";
 import {
 	ECSClient,
 	RunTaskCommand,
 	DescribeClustersCommand,
+	ListTasksCommand,
 } from "@aws-sdk/client-ecs";
 import { db } from "@vercel/postgres";
 
@@ -11,6 +12,7 @@ const ecs = new ECSClient();
 
 const queueUrl = process.env.SQS_QUEUE_URL;
 const clusterArn = process.env.CLUSTER_ARN;
+const MAX_RUNNING_TASKS = process.env.MAX_RUNNING_TASKS || 2;
 
 let client;
 
@@ -52,6 +54,24 @@ const removeOngoingJobByTaskId = async (taskId) => {
 	}
 };
 
+const changeMessageVisibility = async (receiptHandle, visibilityTimeout) => {
+	const params = {
+		QueueUrl: queueUrl,
+		ReceiptHandle: receiptHandle,
+		VisibilityTimeout: visibilityTimeout,
+	};
+
+	try {
+		await sqs.send(new ChangeMessageVisibilityCommand(params));
+		console.log(
+			`Changed message visibility to ${visibilityTimeout} seconds`
+		);
+	} catch (error) {
+		console.error("Error changing message visibility:", error);
+		throw error;
+	}
+};
+
 const isEc2Available = async () => {
 	try {
 		const describeClustersParams = {
@@ -73,28 +93,44 @@ const isEc2Available = async () => {
 	}
 };
 
-const startBuildTaskContainer = async (taskData, receiptHandle) => {
-	console.log(`Starting container process for task: ${taskData.TaskId}`);
+const getRunningTasksCount = async () => {
+	try {
+		const listTasksParams = {
+			cluster: clusterArn,
+			desiredStatus: "RUNNING",
+		};
+		const listTasksResponse = await ecs.send(
+			new ListTasksCommand(listTasksParams)
+		);
+		return listTasksResponse.taskArns.length;
+	} catch (error) {
+		console.error("Error getting running tasks count:", error);
+		throw error;
+	}
+};
+
+const startBuildTaskContainer = async (taskData) => {
 	console.log(
-		`${taskData.RepoUrl} | ${taskData.Branch} | ${taskData.RootDir}`
+		`Attempting to start container process for task: ${taskData.TaskId}`
 	);
-	console.log(
-		`User ID: ${taskData.UserId} | Project ID: ${taskData.ProjectId}`
-	);
-	console.log(
-		`${taskData.Preset} | ${taskData.InstallCommand} | ${taskData.BuildCommand} | ${taskData.OutputDir}`
-	);
-	console.log(`Build Command: ${taskData.BuildCommand}`);
+	console.log(`Repository URL: ${taskData.RepoUrl}`);
+	console.log(`Preset: ${taskData.Preset}`);
 
 	const ec2Available = await isEc2Available();
 	if (!ec2Available) {
-		console.log(
-			"No EC2 instances are available. Keeping message in the queue for retry."
+		throw new Error(
+			`NO_CONTAINER: No EC2 instances available for task ${taskData.TaskId}.`
 		);
-		return;
 	}
 
-	// Run ECS EC2 task
+	const runningTasksCount = await getRunningTasksCount();
+	if (runningTasksCount >= MAX_RUNNING_TASKS) {
+		await updateTaskStatus(taskData.TaskId, "IN_QUEUE");
+		throw new Error(
+			`MAX_TASKS_REACHED: Maximum number of running tasks (${MAX_RUNNING_TASKS}) reached for task ${taskData.TaskId}.`
+		);
+	}
+
 	const runTaskParams = {
 		cluster: clusterArn,
 		taskDefinition: "CodeHost-build-task",
@@ -123,60 +159,79 @@ const startBuildTaskContainer = async (taskData, receiptHandle) => {
 	};
 
 	try {
-		// Update task status to 'STARTING'
 		await updateTaskStatus(taskData.TaskId, "STARTING");
-
 		const runTaskResponse = await ecs.send(
 			new RunTaskCommand(runTaskParams)
 		);
-		console.log("ECS EC2 task started:", runTaskResponse.tasks[0].taskArn);
-
-		const deleteParams = {
-			QueueUrl: queueUrl,
-			ReceiptHandle: receiptHandle,
-		};
-
-		await sqs.send(new DeleteMessageCommand(deleteParams));
-		console.log("Message processed and deleted.");
+		console.log("ECS EC2 task started:", runTaskResponse);
+		return { status: "SUCCESS", taskId: taskData.TaskId };
 	} catch (error) {
 		console.error("Error starting ECS EC2 task:", error);
-
 		await updateTaskStatus(taskData.TaskId, "FAILED");
 		await removeOngoingJobByTaskId(taskData.TaskId);
-
-		console.log("Message will remain in the queue for retries.");
+		return { status: "FAILED", taskId: taskData.TaskId };
 	}
 };
 
 export const handler = async (event) => {
 	await initDb();
 
-	for (const record of event.Records) {
-		const messageAttributes = record.messageAttributes;
-		const taskData = {
-			TaskId: messageAttributes.TaskId.stringValue,
-			ProjectId: messageAttributes.ProjectId.stringValue,
-			UserId: messageAttributes.UserId.stringValue,
-			RepoUrl: messageAttributes.RepoUrl.stringValue,
-			Branch: messageAttributes.Branch.stringValue,
-			RootDir: messageAttributes.RootDir.stringValue,
-			Preset: messageAttributes.Preset.stringValue,
-			InstallCommand: messageAttributes.InstallCommand.stringValue,
-			BuildCommand: messageAttributes.BuildCommand.stringValue,
-			OutputDir: messageAttributes.OutputDir.stringValue,
+	try {
+		for (const record of event.Records) {
+			const messageAttributes = record.messageAttributes;
+			const taskData = {
+				TaskId: messageAttributes.TaskId.stringValue,
+				ProjectId: messageAttributes.ProjectId.stringValue,
+				UserId: messageAttributes.UserId.stringValue,
+				RepoUrl: messageAttributes.RepoUrl.stringValue,
+				Branch: messageAttributes.Branch.stringValue,
+				RootDir: messageAttributes.RootDir.stringValue,
+				Preset: messageAttributes.Preset.stringValue,
+				InstallCommand: messageAttributes.InstallCommand.stringValue,
+				BuildCommand: messageAttributes.BuildCommand.stringValue,
+				OutputDir: messageAttributes.OutputDir.stringValue,
+			};
+
+			try {
+				const result = await startBuildTaskContainer(taskData);
+				if (result.status === "FAILED") {
+					console.log(
+						`Task ${result.taskId} failed to start. Status set to FAILED.`
+					);
+				}
+			} catch (error) {
+				if (
+					error.message.startsWith("NO_CONTAINER") ||
+					error.message.startsWith("MAX_TASKS_REACHED")
+				) {
+					console.error(
+						"No container or max tasks reached:",
+						error.message
+					);
+
+					// Change visibility to 10 seconds
+					await changeMessageVisibility(record.receiptHandle, 10);
+
+					// Throw error to exit Lambda early after setting visibility
+					throw new Error(error.message);
+				} else {
+					console.error("Error processing task:", error);
+				}
+			}
+		}
+
+		console.log("All tasks processed");
+		return {
+			statusCode: 200,
+			body: JSON.stringify("Function executed successfully"),
 		};
-
-		// Start the ECS task
-		await startBuildTaskContainer(taskData, record.receiptHandle);
+	} catch (error) {
+		console.error("Error in Lambda handler:", error);
+		throw error;
+	} finally {
+		if (client) {
+			await client.release();
+			client = null;
+		}
 	}
-
-	if (client) {
-		await client.release();
-		client = null;
-	}
-
-	return {
-		statusCode: 200,
-		body: JSON.stringify("Function executed successfully"),
-	};
 };
