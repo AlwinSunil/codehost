@@ -36,6 +36,8 @@ export default function LatestTask({ projectId }) {
         } else {
           setLatestTask(response.task);
           setError(null);
+
+          // Clear interval if task status is one of the final states
           if (
             response.task.status === "COMPLETED" ||
             response.task.status === "DEPLOYED" ||
@@ -50,19 +52,12 @@ export default function LatestTask({ projectId }) {
       }
     }
 
-    // Clear the existing polling interval if it exists
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-    }
+    getLatestTask();
 
-    // Start a new polling interval
     pollingInterval = setInterval(getLatestTask, 2000);
 
-    // Cleanup function to clear the interval when the component unmounts or version changes
     return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
+      clearInterval(pollingInterval);
     };
   }, [version, projectId]);
 

@@ -22,7 +22,7 @@ function TaskItem({ projectId, task }) {
   return (
     <Link
       href={`/project/${projectId}/${task.id}`}
-      className="flex flex-row items-center gap-4 border-b px-8 py-5 last:border-b-0"
+      className="flex flex-row items-center gap-4 border-b px-8 py-5 last:border-b-0 hover:bg-gray-50/50"
     >
       <p className="w-52 overflow-hidden text-sm font-medium">
         {task.id.slice(0, 10)}
