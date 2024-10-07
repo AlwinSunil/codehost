@@ -3,7 +3,6 @@ import path from "path";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import pLimit from "p-limit";
 import mime from "mime-types";
-import { PrismaClient } from "@prisma/client";
 
 const CLOUDFLARE_R2_ACCESS_KEY_ID = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
 const CLOUDFLARE_R2_SECRET_ACCESS_KEY =

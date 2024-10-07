@@ -61,7 +61,7 @@ enum Preset {
 
 model Task {
   id            String      @id @default(cuid())
-  status        TaskStatus  @default(ON_QUEUE)
+  status        TaskStatus  @default(IN_QUEUE)
   startedAt     DateTime    @default(now())
   lastUpdated   DateTime    @default(now())
   commitHash    String?
@@ -107,7 +107,7 @@ enum ProjectStatus {
 }
 
 enum TaskStatus {
-  ON_QUEUE
+  IN_QUEUE
   STARTING
   BUILDING
   COMPLETED

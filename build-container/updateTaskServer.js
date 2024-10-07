@@ -1,11 +1,32 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { createClient } from "redis";
+import {
+	S3Client,
+	ListObjectsV2Command,
+	DeleteObjectsCommand,
+} from "@aws-sdk/client-s3";
 
 const prisma = new PrismaClient();
 const redisClient = createClient();
 
 const projectId = process.env.PROJECT_ID;
+
+const CLOUDFLARE_R2_ACCESS_KEY_ID = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
+const CLOUDFLARE_R2_SECRET_ACCESS_KEY =
+	process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
+const CLOUDFLARE_R2_ENDPOINT = process.env.CLOUDFLARE_R2_ENDPOINT;
+const CLOUDFLARE_R2_BUCKET_NAME = process.env.CLOUDFLARE_R2_BUCKET_NAME;
+const DEPLOYMENT_DIR_NAME = process.env.DEPLOYMENT_DIR_NAME;
+
+const s3Client = new S3Client({
+	region: "auto",
+	endpoint: CLOUDFLARE_R2_ENDPOINT,
+	credentials: {
+		accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
+		secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+	},
+});
 
 async function initRedis() {
 	try {
@@ -37,12 +58,102 @@ async function updateTaskStatus(taskId, status) {
 					where: { id: projectId },
 					data: { productionTaskId: taskId },
 				});
+
+				await cleanupOldDeployments(projectId);
 			}
 		}
 		return updatedTask;
 	} catch (error) {
 		handleError(`Error updating task status: ${error.message}`);
 	}
+}
+
+async function cleanupOldDeployments(projectId) {
+	try {
+		// Get the last two completed tasks
+		const lastTwoCompletedTasks = await prisma.task.findMany({
+			where: {
+				projectId: projectId,
+				status: "COMPLETED",
+			},
+			orderBy: {
+				completedAt: "desc",
+			},
+			take: 2,
+			select: {
+				id: true,
+			},
+		});
+
+		const tasksToKeep = new Set(
+			lastTwoCompletedTasks.map((task) => task.id)
+		);
+
+		// List all task folders in the project's R2 directory
+		const prefix = `${process.env.DEPLOYMENT_DIR_NAME}/${projectId}/`;
+		const listParams = {
+			Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+			Prefix: prefix,
+			Delimiter: "/",
+		};
+
+		const listCommand = new ListObjectsV2Command(listParams);
+		const listedObjects = await s3Client.send(listCommand);
+
+		if (!listedObjects.CommonPrefixes) {
+			console.log("No deployments found to clean up.");
+			return;
+		}
+
+		// Extracting taskId from the prefix
+		const foldersToDelete = listedObjects.CommonPrefixes.map(
+			(prefix) => prefix.Prefix.split("/")[2]
+		).filter((taskId) => !tasksToKeep.has(taskId));
+
+		for (const taskId of foldersToDelete) {
+			await deleteTaskDeployment(projectId, taskId);
+		}
+
+		console.log(
+			`Cleaned up deployments for ${foldersToDelete.length} old tasks.`
+		);
+	} catch (error) {
+		console.error(`Error cleaning up old deployments: ${error.message}`);
+	}
+}
+
+async function deleteTaskDeployment(projectId, taskId) {
+	const prefix = `${DEPLOYMENT_DIR_NAME}/${projectId}/${taskId}/`;
+	let continuationToken = undefined;
+
+	do {
+		const listParams = {
+			Bucket: CLOUDFLARE_R2_BUCKET_NAME,
+			Prefix: prefix,
+			ContinuationToken: continuationToken,
+		};
+
+		const listCommand = new ListObjectsV2Command(listParams);
+		const listedObjects = await s3Client.send(listCommand);
+
+		if (listedObjects.Contents && listedObjects.Contents.length > 0) {
+			const deleteParams = {
+				Bucket: CLOUDFLARE_R2_BUCKET_NAME,
+				Delete: {
+					Objects: listedObjects.Contents.map((obj) => ({
+						Key: obj.Key,
+					})),
+				},
+			};
+
+			const deleteCommand = new DeleteObjectsCommand(deleteParams);
+			await s3Client.send(deleteCommand);
+		}
+
+		continuationToken = listedObjects.NextContinuationToken;
+	} while (continuationToken);
+
+	console.log(`Deleted deployment for task ${taskId}`);
 }
 
 async function processLogs() {
