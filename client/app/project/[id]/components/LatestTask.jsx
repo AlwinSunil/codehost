@@ -7,6 +7,7 @@ import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
 
 import { fetchLatestTask } from "../actions/fetchLatestTask";
+import { useProject } from "../Context/ProjectContext";
 import { useTaskRefetch } from "../Context/TaskRefetchContext";
 
 const statusClasses = {
@@ -20,9 +21,12 @@ const statusClasses = {
 
 export default function LatestTask({ projectId }) {
   const { version } = useTaskRefetch();
+  const project = useProject();
 
   const [latestTask, setLatestTask] = useState(null);
   const [error, setError] = useState(null);
+
+  const [isCurrentTaskProd, setIsCurrentTaskProd] = useState(false);
 
   useEffect(() => {
     let pollingInterval;
@@ -61,6 +65,12 @@ export default function LatestTask({ projectId }) {
     };
   }, [version, projectId]);
 
+  useEffect(() => {
+    if (latestTask) {
+      setIsCurrentTaskProd(latestTask.id === project.productionTaskId);
+    }
+  }, [latestTask]);
+
   if (error) {
     return (
       <div className="flex items-center border px-4 py-2">
@@ -82,22 +92,43 @@ export default function LatestTask({ projectId }) {
         href={`/project/${projectId}/${latestTask.id}`}
         className="group flex w-full items-center justify-between gap-2 px-4 py-6 hover:cursor-pointer hover:bg-gray-50/50 md:px-10"
       >
-        <p className="flex items-center gap-1.5 text-sm text-black group-hover:underline">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4 text-black"
-          >
-            <circle cx="12" cy="12" r="3" />
-            <line x1="3" x2="9" y1="12" y2="12" />
-            <line x1="15" x2="21" y1="12" y2="12" />
-          </svg>
-          {latestTask.commitHash.slice(0, 7)}
+        <p className="flex items-center gap-2 text-sm text-black">
+          <div className="flex items-center gap-1.5 group-hover:underline">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4 text-black"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <line x1="3" x2="9" y1="12" y2="12" />
+              <line x1="15" x2="21" y1="12" y2="12" />
+            </svg>
+            {latestTask.commitHash.slice(0, 7)}
+          </div>
+          {isCurrentTaskProd && (
+            <div className="flex items-center gap-1 rounded-full bg-blue-100 p-0.5 pl-1 pr-2.5 text-blue-700">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3.5 w-3.5"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="m16 12-4-4-4 4" />
+                <path d="M12 16V8" />
+              </svg>
+              <p className="font-sans text-xs font-medium">Current</p>
+            </div>
+          )}
         </p>
         <p className="w-72 truncate text-xs text-gray-700">
           {latestTask.commitMessage}
