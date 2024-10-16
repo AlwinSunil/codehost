@@ -91,7 +91,7 @@ async function cleanupOldDeployments(projectId) {
 				status: "COMPLETED",
 			},
 			orderBy: {
-				completedAt: "asc",
+				lastUpdated: "desc",
 			},
 			take: 2,
 			select: {
@@ -102,6 +102,8 @@ async function cleanupOldDeployments(projectId) {
 		const tasksToKeep = new Set(
 			lastTwoCompletedTasks.map((task) => task.id)
 		);
+
+		console.log("Tasks to keep: ", tasksToKeep);
 
 		const prefix = `${process.env.DEPLOYMENT_DIR_NAME}/${projectId}/`;
 		const listParams = {
