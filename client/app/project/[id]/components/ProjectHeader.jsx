@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { toast } from "sonner";
 
 import ProjectSettings from "./ProjectSettings";
+import { useProject } from "../Context/ProjectContext";
 
 export const copyToClipboard = (deployedURL) => {
   navigator.clipboard.writeText(deployedURL);
@@ -21,7 +22,13 @@ export const deployedURL = (subdomain) => {
   return `${protocol}://${subdomain}.${process.env.NEXT_PUBLIC_BASE_URL}`;
 };
 
-export default function ProjectHeader({ project }) {
+export default function ProjectHeader() {
+  const { project } = useProject();
+
+  if (!project) {
+    return null;
+  }
+
   return (
     <>
       <div className="relative flex justify-center gap-5 pb-6 pt-6">
@@ -36,13 +43,13 @@ export default function ProjectHeader({ project }) {
             <span
               className={clsx(
                 "mr-auto h-fit w-fit px-1 text-xs font-semibold",
-                project.status === "ACTIVE" &&
+                project?.status === "ACTIVE" &&
                   "border border-emerald-200 bg-emerald-50 text-emerald-500",
-                project.status === "PAUSED" &&
+                project?.status === "PAUSED" &&
                   "border border-yellow-200 bg-yellow-50 text-yellow-500",
               )}
             >
-              {project.status}
+              {project?.status}
             </span>
           </div>
           <div className="mt-0.5 flex items-center gap-1.5">
@@ -72,7 +79,7 @@ export default function ProjectHeader({ project }) {
               <path d="m15 10-4 4 4 4" />
             </svg>
           </div>
-          {project.status === "PAUSED" ? (
+          {project?.status === "PAUSED" ? (
             <p className="mt-1 font-sans text-xs leading-4 tracking-tight text-gray-600">
               *Activate project in settings to make url accessable and for new
               deployments

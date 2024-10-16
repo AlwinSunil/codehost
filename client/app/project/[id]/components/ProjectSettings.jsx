@@ -59,7 +59,6 @@ function ProfileMenu({ project }) {
       try {
         const response = await updateSubdomain(project.id, newSubdomain);
         if (response.success) {
-          router.refresh();
           toast.success(response.message);
         } else {
           toast.error(response.message);
@@ -90,7 +89,6 @@ function ProfileMenu({ project }) {
         const response = await changeStatus(project.id, newStatus);
 
         if (response.success) {
-          router.refresh();
           toast.success(
             `Project ${isProjectActive ? "paused" : "activated"} successfully`,
           );
@@ -137,7 +135,7 @@ function ProfileMenu({ project }) {
           >
             <Dialog.Title className="flex items-center justify-between px-1 font-medium">
               <span className="flex items-center gap-1 font-medium leading-4 tracking-tight">
-                <span>{project.name}</span>
+                <span>{project?.name}</span>
                 <span>/</span>
                 <span className="text-gray-500">settings</span>
               </span>
@@ -200,23 +198,24 @@ function ProfileMenu({ project }) {
                 <hr />
                 <div className="mb-5 mt-4 flex flex-col">
                   <span className="text-lg font-semibold">
-                    {project.status === "ACTIVE" ? "Pause" : "Enable"} Project
+                    {project?.status === "ACTIVE" ? "Pause" : "Enable"} Project
                   </span>
                   <p className="text-sm leading-4 tracking-tight text-gray-600">
                     This will make your project{" "}
-                    {project.status === "ACTIVE"
+                    {project?.status === "ACTIVE"
                       ? "inaccessible via URL and block any further deployments until re-enabled."
                       : "accessible and allow future deployments."}
                   </p>
                   <button
                     className={`mt-3 w-fit border px-3 py-1 text-sm font-semibold ${
-                      project.status === "ACTIVE"
+                      project?.status === "ACTIVE"
                         ? "border-yellow-300 bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
                         : "border-green-300 bg-green-50 text-green-600 hover:bg-green-100"
                     }`}
                     onClick={handleChangeStatus}
                   >
-                    {project.status === "ACTIVE" ? "Pause" : "Activate"} Project
+                    {project?.status === "ACTIVE" ? "Pause" : "Activate"}{" "}
+                    Project
                   </button>
                 </div>
                 <hr className="border-2" />

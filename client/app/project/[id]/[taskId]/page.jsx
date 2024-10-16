@@ -6,6 +6,8 @@ import Link from "next/link";
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
 
+import Loading from "@/app/loading";
+
 import { fetchTaskDetailsAndLogs } from "./actions/fetchTaskDetailsAndLogs";
 import { useProject } from "../Context/ProjectContext";
 
@@ -19,7 +21,8 @@ const statusClasses = {
 };
 
 export default function Task({ params }) {
-  const project = useProject();
+  const { project, error } = useProject();
+
   const logsRef = useRef(null);
 
   const [data, setData] = useState({
@@ -101,8 +104,12 @@ export default function Task({ params }) {
     return `${minutes}m ${seconds}s`;
   };
 
+  if (!error && !project) {
+    return <div className="py-3 text-lg font-semibold">Loading...</div>;
+  }
+
   return (
-    <div className="">
+    <div>
       <hr className="mb-2.5 border-gray-200" />
       <div className="mb-2.5">
         <div className="flex items-center gap-3 divide-x">

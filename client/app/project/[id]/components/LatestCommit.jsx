@@ -42,6 +42,7 @@ export default function LatestCommit({ project }) {
       toast.error("Error fetching commits", { duration: 2000 });
     } finally {
       setLoading(false);
+      refetchTasks();
     }
   };
 
