@@ -196,7 +196,7 @@ export default function LatestTask({ projectId }) {
             </p>
             <span className="text-gray-700">#{latestTask.id.slice(0, 10)}</span>
             <button
-              className="flex gap-1.5 bg-black px-2 py-1 text-white disabled:bg-gray-500"
+              className="flex gap-1.5 bg-black px-2 py-1 font-medium text-white disabled:bg-gray-500"
               disabled={revertLoading}
               onClick={() => handleRollbackToLatest(projectId, latestTask.id)}
             >

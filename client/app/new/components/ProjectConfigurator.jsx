@@ -1,73 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import * as Accordion from "@radix-ui/react-accordion";
 import clsx from "clsx";
 
-const PresetSelect = ({ presets, selectedPreset, onChange }) => (
-  <div className="flex items-center gap-2">
-    <select
-      id="preset"
-      className="h-10 w-80 border border-gray-300 px-2 py-1.5 font-sans text-gray-800 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-200 focus:ring-offset-2"
-      onChange={onChange}
-      value={selectedPreset.value}
-    >
-      {presets.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.name}
-        </option>
-      ))}
-    </select>
-    <div className="flex items-center gap-2 px-2 py-1">
-      <img
-        id="selected-image"
-        src={selectedPreset.image}
-        alt={selectedPreset.name}
-        className="h-4 w-4"
-      />
-      <span id="selected-name">{selectedPreset.name}</span>
-    </div>
-  </div>
-);
-
-const ConfigField = ({
-  field,
-  placeholder,
-  value,
-  allowOverride,
-  onInputChange,
-  onToggleOverride,
-}) => (
-  <div key={field} className="flex flex-col gap-1">
-    <label htmlFor={field} className="font-semibold capitalize">
-      {field.replace(/([A-Z])/g, " $1")}
-    </label>
-    <div className="flex items-center gap-4">
-      <input
-        type="text"
-        id={field}
-        className={`w-full border px-2 py-1.5 font-sans text-sm focus:outline-none focus:ring-1 focus:ring-blue-300 focus:ring-offset-2 ${
-          allowOverride
-            ? "border-gray-300 text-gray-800 focus:border-gray-500"
-            : "border-gray-200 bg-gray-100 text-gray-500"
-        }`}
-        placeholder={`e.g, ${placeholder}`}
-        value={value}
-        onChange={(e) => onInputChange(e.target.value)}
-        disabled={!allowOverride}
-      />
-      <label htmlFor={`${field}-override`} className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id={`${field}-override`}
-          checked={allowOverride}
-          onChange={onToggleOverride}
-          className="h-4 w-4"
-        />
-        <span className="text-sm font-medium tracking-tight">Override</span>
-      </label>
-    </div>
-  </div>
-);
+import ConfigField from "./ConfigField";
+import EnvironmentVariables from "./EnvironmentVariables";
+import PresetSelect from "./PresetSelect";
 
 export default function ProjectConfigurator({
   presets,
@@ -79,8 +17,12 @@ export default function ProjectConfigurator({
   setProjectConfig,
   rootDir,
   setRootDir,
+  isEnvsValid,
+  setIsEnvsValid,
+  envVars,
+  setEnvVars,
 }) {
-  const [isAccordionOpen, setIsAccordionOpen] = useState(false);
+  const [accordionValue, setAccordionValue] = useState(null);
   const [rootDirValid, setRootDirValid] = useState(true);
   const [isEditingRootDir, setIsEditingRootDir] = useState(false);
 
@@ -111,8 +53,8 @@ export default function ProjectConfigurator({
 
   const handleRootDirChange = (event) => {
     const newRootDir = event.target.value;
-    setRootDir(newRootDir);
     validateRootDir(newRootDir);
+    setRootDir(newRootDir);
   };
 
   const validateRootDir = (path) => {
@@ -227,23 +169,30 @@ export default function ProjectConfigurator({
           <Accordion.Root
             type="single"
             collapsible
-            onValueChange={(value) =>
-              setIsAccordionOpen(value === "customizeSettings")
-            }
-            className="mb-4 mt-4 border-b border-t border-gray-200"
+            value={accordionValue}
+            onValueChange={setAccordionValue}
+            className="mb-5 mt-5 border-gray-200"
           >
-            <Accordion.Item value="customizeSettings">
+            <Accordion.Item
+              value="customizeSettings"
+              className={clsx({
+                "outline-dashed outline-gray-700":
+                  accordionValue === "customizeSettings",
+                "border-t": accordionValue !== "customizeSettings",
+                "mb-3 border-b": accordionValue === "environmentVariables",
+              })}
+            >
               <Accordion.Header>
                 <Accordion.Trigger
                   className={clsx(
-                    "flex w-full items-center justify-between px-5 py-3 text-left font-semibold",
+                    "flex w-full items-center justify-between px-5 py-3.5 text-left font-semibold",
                     {
-                      "border-b": isAccordionOpen,
+                      "border-b": accordionValue === "customizeSettings",
                     },
                   )}
                 >
                   Customize build & output settings
-                  {isAccordionOpen ? (
+                  {accordionValue === "customizeSettings" ? (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -290,6 +239,66 @@ export default function ProjectConfigurator({
                     />
                   ))}
                 </div>
+              </Accordion.Content>
+            </Accordion.Item>
+            <Accordion.Item
+              value="environmentVariables"
+              className={clsx({
+                "outline-dashed outline-gray-700":
+                  accordionValue === "environmentVariables",
+                "border-b border-t": accordionValue !== "environmentVariables",
+              })}
+            >
+              <Accordion.Header>
+                <Accordion.Trigger
+                  className={clsx(
+                    "flex w-full items-center justify-between px-5 py-3.5 text-left font-semibold",
+                    {
+                      "border-b": accordionValue === "environmentVariables",
+                    },
+                  )}
+                >
+                  Environment Variables
+                  {accordionValue === "environmentVariables" ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <path d="M5 15l7-7 7 7" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <path d="M19 9l-7 7-7-7" />
+                    </svg>
+                  )}
+                </Accordion.Trigger>
+              </Accordion.Header>
+              <Accordion.Content>
+                <EnvironmentVariables
+                  envVars={envVars}
+                  setEnvVars={setEnvVars}
+                  isEnvsValid={isEnvsValid}
+                  setIsEnvsValid={setIsEnvsValid}
+                />
               </Accordion.Content>
             </Accordion.Item>
           </Accordion.Root>

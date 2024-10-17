@@ -47,11 +47,15 @@ export default function NewProject() {
   const [repoUrl, setRepoUrl] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
   const [validateState, setValidateState] = useState(initialStateValidation);
+
   const [createProjectState, setCreateProjectState] =
     useState(initialStateCreate);
   const [selectedPreset, setSelectedPreset] = useState(presets[0]);
   const [rootDir, setRootDir] = useState("./");
   const [projectConfig, setProjectConfig] = useState(initialConfig);
+
+  const [envVars, setEnvVars] = useState([]);
+  const [isEnvsValid, setIsEnvsValid] = useState(false);
 
   const [isValidating, setIsValidating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -167,6 +171,7 @@ export default function NewProject() {
         validatedRootDir,
         projectPreset,
         config,
+        envVars,
       );
       if (result.success) {
         router.push(`/project/${result.id}`);
@@ -339,6 +344,10 @@ export default function NewProject() {
             setProjectConfig={setProjectConfig}
             rootDir={rootDir}
             setRootDir={setRootDir}
+            isEnvsValid={isEnvsValid}
+            setIsEnvsValid={setIsEnvsValid}
+            envVars={envVars}
+            setEnvVars={setEnvVars}
           />
           {!createProjectState.error && (
             <div className="mt-4 flex max-w-lg justify-between gap-2">
@@ -349,14 +358,24 @@ export default function NewProject() {
               >
                 Reset
               </button>
-              <button
-                type="button"
-                className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
-                onClick={createProjectFormAction}
-                disabled={isCreating}
-              >
-                {isCreating ? "Creating Project..." : "Create Project"}
-              </button>
+              {isEnvsValid ? (
+                <button
+                  type="button"
+                  className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+                  onClick={createProjectFormAction}
+                  disabled={isCreating}
+                >
+                  {isCreating ? "Creating Project..." : "Create Project"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+                  disabled={true}
+                >
+                  Create Project
+                </button>
+              )}
             </div>
           )}
         </>

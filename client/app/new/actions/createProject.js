@@ -43,6 +43,7 @@ export async function createProject(
   rootDir,
   projectPreset,
   projectConfig,
+  envs,
 ) {
   try {
     const session = await getServerSession(authConfig);
@@ -115,6 +116,12 @@ export async function createProject(
           installCommand,
           buildCommand,
           outputDir: outputDirectory,
+          EnvironmentVariables: {
+            create: envs.map(({ key, value }) => ({
+              key,
+              value,
+            })),
+          },
         },
       });
 
