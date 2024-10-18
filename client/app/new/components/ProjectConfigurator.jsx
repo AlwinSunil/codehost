@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import * as Accordion from "@radix-ui/react-accordion";
 import clsx from "clsx";
 
+import EnvironmentVariables from "@/app/components/EnvironmentVariables";
+
 import ConfigField from "./ConfigField";
-import EnvironmentVariables from "./EnvironmentVariables";
 import PresetSelect from "./PresetSelect";
 
 export default function ProjectConfigurator({
@@ -294,6 +295,7 @@ export default function ProjectConfigurator({
               </Accordion.Header>
               <Accordion.Content>
                 <EnvironmentVariables
+                  isNewProject={true}
                   envVars={envVars}
                   setEnvVars={setEnvVars}
                   isEnvsValid={isEnvsValid}

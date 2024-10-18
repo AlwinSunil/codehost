@@ -6,8 +6,6 @@ import Link from "next/link";
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
 
-import Loading from "@/app/loading";
-
 import { fetchTaskDetailsAndLogs } from "./actions/fetchTaskDetailsAndLogs";
 import { useProject } from "../Context/ProjectContext";
 

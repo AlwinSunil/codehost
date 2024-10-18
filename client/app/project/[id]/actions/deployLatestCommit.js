@@ -11,13 +11,13 @@ import getLatestCommit from "./getLatestCommit";
 
 export default async function deployLatestCommit(id, repo, branch) {
   try {
-    const latestCommit = await getLatestCommit(id, repo, branch);
-
     const session = await getServerSession(authConfig);
 
     if (!session || !session.user) {
       return { success: false, error: "User not authenticated" };
     }
+
+    const latestCommit = await getLatestCommit(id, repo, branch);
 
     const userId = session.user.id;
 

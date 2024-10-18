@@ -1,10 +1,12 @@
 import { useState } from "react";
 
+import clsx from "clsx";
 import { toast } from "sonner";
 
-import { validateEnvs } from "../actions/validateEnvs";
+import { validateEnvs } from "../new/actions/validateEnvs";
 
 export default function EnvironmentVariables({
+  isNewProject,
   envVars,
   setEnvVars,
   isEnvsValid,
@@ -67,7 +69,7 @@ export default function EnvironmentVariables({
         setIsEnvsValid(false);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       setError(error.message);
       setIsEnvsValid(false);
     } finally {
@@ -76,7 +78,12 @@ export default function EnvironmentVariables({
   };
 
   return (
-    <div className="mb-3 mt-1 flex flex-col gap-5 px-5 py-4">
+    <div
+      className={clsx("mt-1 flex flex-col gap-5", {
+        "mb-3 px-5 py-4": isNewProject,
+        "max-w-lg px-1 pb-2 pt-4": !isNewProject,
+      })}
+    >
       <div className="flex w-full gap-2.5">
         <div className="flex w-full flex-col gap-1">
           <label htmlFor="key" className="font-sans text-xs">
@@ -174,7 +181,7 @@ export default function EnvironmentVariables({
         </>
       )}
 
-      <div className="flex w-fit items-center gap-2 rounded-full border py-1 pl-1.5 pr-3">
+      <div className="ml-auto flex w-fit items-center gap-2 rounded-full border py-1 pl-1.5 pr-3">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
