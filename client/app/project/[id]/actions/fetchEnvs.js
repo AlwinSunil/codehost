@@ -20,6 +20,7 @@ export default async function fetchEnvs(projectId) {
       select: {
         key: true,
         value: true,
+        id: true,
       },
     });
 

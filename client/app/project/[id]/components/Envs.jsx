@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import EnvironmentVariables from "@/app/components/EnvironmentVariables";
 
 import fetchEnvs from "../actions/fetchEnvs";
+import { removeEnvFromProject } from "../actions/removeEnvForProject";
 
 export default function Envs({ project }) {
   const [envs, setEnvs] = useState(null);
@@ -16,30 +17,6 @@ export default function Envs({ project }) {
 
   const [newEnvs, setNewEnvs] = useState([]);
   const [isNewEnvsValid, setIsNewEnvsValid] = useState(false);
-
-  useEffect(() => {
-    const loadEnvs = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetchEnvs(project.id);
-
-        if (response.success) {
-          setEnvs(response.envs);
-        } else {
-          setError(response.message || "Failed to fetch environment variables");
-        }
-      } catch (err) {
-        console.error("Error fetching environment variables:", err);
-        setError("An unexpected error occurred.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadEnvs();
-  }, [project.id]);
 
   const toggleVisibility = (key) => {
     setVisibleEnvKeys((prev) => ({
@@ -56,6 +33,50 @@ export default function Envs({ project }) {
       toast.error("Failed to copy to clipboard!");
     }
   };
+
+  const handleRemoveEnv = async (env) => {
+    try {
+      setIsLoading(true);
+
+      const response = await removeEnvFromProject(env.id, project.id);
+      console.log(response);
+      if (response.success) {
+        toast.success(response.message);
+      } else {
+        toast.error(response.message);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to remove env");
+    } finally {
+      loadEnvs();
+    }
+  };
+
+  const loadEnvs = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetchEnvs(project.id);
+
+      if (response.success) {
+        setEnvs(response.envs);
+        console.log(response.envs);
+      } else {
+        setError(response.message || "Failed to fetch environment variables");
+      }
+    } catch (err) {
+      console.error("Error fetching environment variables:", err);
+      setError("An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEnvs();
+  }, [project.id]);
 
   return (
     <div className="mb-5 flex flex-col bg-white">
@@ -172,7 +193,10 @@ export default function Envs({ project }) {
                         <button className="w-full px-2 py-1 text-left text-black hover:bg-gray-100">
                           Edit
                         </button>
-                        <button className="w-full px-2 py-1 text-left text-red-500 hover:bg-red-50">
+                        <button
+                          className="w-full px-2 py-1 text-left text-red-500 hover:bg-red-50"
+                          onClick={() => handleRemoveEnv(env)}
+                        >
                           Remove
                         </button>
                       </DropdownMenu.Item>
