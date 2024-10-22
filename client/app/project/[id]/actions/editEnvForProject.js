@@ -11,8 +11,6 @@ export async function editEnvForProject(envId, projectId, payload) {
     return { success: false, message: "User not authenticated" };
   }
 
-  console.log("Editing env:", envId, projectId, payload);
-
   try {
     const env = await prisma.environmentVariables.findUnique({
       where: {

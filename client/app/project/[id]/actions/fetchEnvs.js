@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export default async function fetchEnvs(projectId) {
+export async function fetchEnvs(projectId) {
   const session = await getServerSession(authConfig);
 
   if (!session || !session.user) {
@@ -21,6 +21,9 @@ export default async function fetchEnvs(projectId) {
         key: true,
         value: true,
         id: true,
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 

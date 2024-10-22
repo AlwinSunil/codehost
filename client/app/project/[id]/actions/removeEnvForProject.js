@@ -11,8 +11,6 @@ export async function removeEnvFromProject(envId, projectId) {
     return { success: false, message: "User not authenticated" };
   }
 
-  console.log(envId, projectId);
-
   try {
     const env = await prisma.environmentVariables.findUnique({
       where: {

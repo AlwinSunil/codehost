@@ -5,6 +5,19 @@ import { toast } from "sonner";
 
 import { validateEnvs } from "../new/actions/validateEnvs";
 
+const isValidEnvKey = (key) => {
+  const envKeyRegex = /^[A-Za-z_][A-Za-z0-9_]{0,99}$/;
+  return envKeyRegex.test(key);
+};
+
+const isValidEnvValue = (value) => {
+  return (
+    value?.trim() === value &&
+    value.length > 0 &&
+    !/[\x00-\x1F\x7F]/.test(value)
+  );
+};
+
 export default function EnvironmentVariables({
   isNewProject,
   envVars,
@@ -21,14 +34,29 @@ export default function EnvironmentVariables({
   const handleValueChange = (e) => setValueInput(e.target.value);
 
   const handleAddEnvVar = () => {
-    if (!keyInput || !valueInput) {
-      setError("Both key and value are required.");
+    setError("");
+
+    const trimmedKey = keyInput.trim();
+    const trimmedValue = valueInput.trim();
+
+    if (!isValidEnvKey(trimmedKey)) {
+      setError("Invalid key format");
       return;
     }
 
-    setError("");
-    setEnvVars([...envVars, { key: keyInput, value: valueInput }]);
-    setIsEnvsValid(false);
+    if (envVars.some((env) => env.key === trimmedKey)) {
+      setError("Key already exists");
+      return;
+    }
+
+    if (!isValidEnvValue(trimmedValue)) {
+      setError("Invalid value format");
+      return;
+    }
+
+    setEnvVars([...envVars, { key: trimmedKey, value: trimmedValue }]);
+    setIsEnvsValid(true);
+
     setKeyInput("");
     setValueInput("");
   };
@@ -118,6 +146,27 @@ export default function EnvironmentVariables({
         </button>
       </div>
 
+      <div className="ml-auto flex w-fit items-center gap-2 rounded-full border py-1 pl-1.5 pr-3">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4 text-black"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4" />
+          <path d="M12 8h.01" />
+        </svg>
+        <p className="font-sans text-xs">
+          Certain keys for environment variables are reserved and cannot be
+          used.
+        </p>
+      </div>
+
       {error && (
         <p className="bg-red-50 px-3 py-2 text-xs font-semibold text-red-500">
           {error}
@@ -180,27 +229,6 @@ export default function EnvironmentVariables({
           )}
         </>
       )}
-
-      <div className="ml-auto flex w-fit items-center gap-2 rounded-full border py-1 pl-1.5 pr-3">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-4 w-4 text-black"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 16v-4" />
-          <path d="M12 8h.01" />
-        </svg>
-        <p className="font-sans text-xs">
-          Certain keys for environment variables are reserved and cannot be
-          used.
-        </p>
-      </div>
     </div>
   );
 }

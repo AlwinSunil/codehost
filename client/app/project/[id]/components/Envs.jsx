@@ -6,8 +6,9 @@ import { toast } from "sonner";
 
 import EnvironmentVariables from "@/app/components/EnvironmentVariables";
 
+import { addEnvsForProject } from "../actions/addEnvsForProject";
 import { editEnvForProject } from "../actions/editEnvForProject";
-import fetchEnvs from "../actions/fetchEnvs";
+import { fetchEnvs } from "../actions/fetchEnvs";
 import { removeEnvFromProject } from "../actions/removeEnvForProject";
 
 export default function Envs({ project }) {
@@ -20,6 +21,7 @@ export default function Envs({ project }) {
 
   const [newEnvs, setNewEnvs] = useState([]);
   const [isNewEnvsValid, setIsNewEnvsValid] = useState(false);
+  const [isAddingEnvs, setIsAddingEnvs] = useState(false);
 
   const toggleVisibility = (key) => {
     setVisibleEnvKeys((prev) => ({
@@ -92,6 +94,28 @@ export default function Envs({ project }) {
     }
   };
 
+  const handleAddEnv = async (projectId) => {
+    try {
+      setIsAddingEnvs(true);
+      setIsLoading(true);
+      const response = await addEnvsForProject(projectId, newEnvs);
+
+      if (response.success) {
+        toast.success("Environment variable added successfully");
+        setIsNewEnvsValid(false);
+        setNewEnvs([]);
+      } else {
+        toast.error(response.message || "Failed to add environment variable");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to add environment variable");
+    } finally {
+      loadEnvs();
+      setIsAddingEnvs(false);
+    }
+  };
+
   const loadEnvs = async () => {
     setIsLoading(true);
     setError(null);
@@ -130,6 +154,17 @@ export default function Envs({ project }) {
         isEnvsValid={isNewEnvsValid}
         setIsEnvsValid={setIsNewEnvsValid}
       />
+      <div className="mb-2 flex max-w-lg px-1">
+        {newEnvs.length > 0 && isNewEnvsValid && (
+          <button
+            className="ml-auto mt-2 w-full bg-black px-3 py-2 text-center font-sans text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
+            onClick={() => handleAddEnv(project.id)}
+            disabled={isAddingEnvs}
+          >
+            {isAddingEnvs ? "Saving..." : "Save"}
+          </button>
+        )}
+      </div>
 
       <p className="mb-5 mt-2 font-sans text-sm text-gray-500">
         *A new Deployment is required for your changes to take effect.
@@ -145,8 +180,11 @@ export default function Envs({ project }) {
         ) : envs && envs.length > 0 ? (
           <div className="mt-4 flex flex-col border">
             {envs.map((env) => (
-              <div key={env.id}>
-                <div className="flex items-center justify-between border-b px-5 py-4 last:border-b-0">
+              <>
+                <div
+                  className="flex items-center justify-between border-b px-5 py-4 last:border-b-0"
+                  key={env.id}
+                >
                   <span className="flex-1 text-sm font-semibold">
                     {env.key}
                   </span>
@@ -203,7 +241,7 @@ export default function Envs({ project }) {
                   </div>
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger>
-                      <button className="rounded-lg p-1 hover:bg-gray-100">
+                      <button className="rounded p-1 hover:bg-gray-100">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
@@ -245,8 +283,8 @@ export default function Envs({ project }) {
                   </DropdownMenu.Root>
                 </div>
                 {editingEnv === env.id && (
-                  <div className="flex flex-col px-5 py-4">
-                    <div>
+                  <div className="flex flex-col gap-1.5 border-b px-5 py-4 last:border-b-0">
+                    <div className="flex flex-col gap-1">
                       <label htmlFor="key" className="font-sans text-xs">
                         Key
                       </label>
@@ -255,10 +293,10 @@ export default function Envs({ project }) {
                         name="key"
                         value={editedValues.key}
                         onChange={(e) => handleChangeEnv(e, "key")}
-                        className="w-full border border-gray-300 px-3 py-1.5 text-sm"
+                        className="h-10 w-full border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-offset-2"
                       />
                     </div>
-                    <div className="mb-3 mt-2">
+                    <div className="mb-3 mt-2 flex flex-col gap-1">
                       <label htmlFor="value" className="font-sans text-xs">
                         Value
                       </label>
@@ -267,26 +305,26 @@ export default function Envs({ project }) {
                         name="value"
                         value={editedValues.value}
                         onChange={(e) => handleChangeEnv(e, "value")}
-                        className="w-full border border-gray-300 px-3 py-1.5 text-sm"
+                        className="h-10 w-full border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-offset-2"
                       />
                     </div>
                     <div className="ml-auto mt-2 flex gap-2">
                       <button
                         onClick={() => setEditingEnv(null)}
-                        className="flex w-fit items-center border border-black px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2"
+                        className="flex w-fit items-center border border-black px-3 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={() => handleSaveEnv(env)}
-                        className="flex w-fit items-center bg-black px-3 py-1.5 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
+                        className="flex w-fit items-center bg-black px-3 py-1 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
                       >
                         Save
                       </button>
                     </div>
                   </div>
                 )}
-              </div>
+              </>
             ))}
           </div>
         ) : (
