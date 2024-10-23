@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import * as Accordion from "@radix-ui/react-accordion";
 import clsx from "clsx";
