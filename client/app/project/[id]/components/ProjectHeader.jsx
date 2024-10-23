@@ -33,7 +33,7 @@ export default function ProjectHeader() {
     <>
       <div className="relative flex justify-center gap-5 pb-6 pt-6">
         <img
-          src={`https://api.dicebear.com/9.x/bottts/svg?seed=${project?.name}`}
+          src={project?.avatar}
           className="h-20 w-20 rounded-full border bg-gray-50 p-2"
           alt="Profile Picture"
         />
