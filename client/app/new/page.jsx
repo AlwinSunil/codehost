@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { presets } from "@/helpers/projectPresets";
+import { validateConfig } from "@/helpers/validateConfig";
 import clsx from "clsx";
 
 import { createProject } from "./actions/createProject";
@@ -35,10 +37,6 @@ const initialConfig = {
   },
   outputDirectory: { value: "", allowOverride: false, placeholder: "dist" },
 };
-
-const presets = [
-  { name: "Vite Js", image: "/logos/vitejs.svg", value: "VITEJS" },
-];
 
 export default function NewProject() {
   const [currentForm, setCurrentForm] = useState("validate");
@@ -90,50 +88,6 @@ export default function NewProject() {
     if (selectedBranch) {
       setCurrentForm("configurator");
     }
-  };
-
-  const validateConfig = (config, rootDir) => {
-    const maliciousPatterns = [/;.*$/, /&&.*$/, /(\|\|)/, /(\&\&)/]; // Basic patterns for malicious content
-
-    // Validate commands for malicious content
-    const isMalicious = (command) =>
-      maliciousPatterns.some((pattern) => pattern.test(command));
-
-    const fieldsToCheck = ["installCommand", "buildCommand", "outputDirectory"];
-    for (const field of fieldsToCheck) {
-      if (config[field]?.value && isMalicious(config[field].value)) {
-        alert(`${field} contains potentially malicious content.`);
-        return { config: null, rootDir };
-      }
-    }
-
-    // Check if override fields have values
-    for (const [key, { override, value }] of Object.entries(config)) {
-      if (override && !value) {
-        alert(`The field '${key}' must have a value if 'override' is true.`);
-        return { config: null, rootDir };
-      }
-    }
-
-    // Validate rootDir
-    const invalidChars = /[<>:"/\\|?*]/; // Characters not allowed in directory names
-
-    // Special case: Allow `./`, `../`, and paths with valid characters
-    const allowedPathPattern = /^(\.|\/|\w+)*$/; // Allow relative paths and valid directory names
-
-    if (invalidChars.test(rootDir) && !allowedPathPattern.test(rootDir)) {
-      alert("The specified rootDir contains invalid characters.");
-      return { config: null, rootDir: null };
-    }
-
-    // Check for common path traversal patterns
-    const pathTraversalPatterns = [/(\.\.\/)+/, /(\.\.\\)+/];
-    if (pathTraversalPatterns.some((pattern) => pattern.test(rootDir))) {
-      alert("The specified rootDir contains potentially unsafe path patterns.");
-      return { config: null, rootDir: null };
-    }
-
-    return { config, rootDir };
   };
 
   const validateFormAction = async () => {

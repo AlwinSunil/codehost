@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { deleteProject } from "@/app/project/[id]/actions/deleteProject";
 
+import Configuration from "./Configuration";
 import Envs from "./Envs";
 import { copyToClipboard, deployedURL, displayURL } from "./ProjectHeader";
 import { changeStatus } from "../actions/changeStatus";
@@ -161,7 +162,7 @@ function ProfileMenu({ project }) {
               onValueChange={setCurrentTab}
             >
               <Tabs.List
-                className="mt-1 flex !w-56 flex-col justify-start gap-2 font-sans text-sm font-normal"
+                className="mt-1 flex !w-56 flex-col justify-start gap-1 font-sans text-sm font-normal"
                 aria-label="Manage Project"
               >
                 <Tabs.Trigger
@@ -175,6 +176,18 @@ function ProfileMenu({ project }) {
                   value="general"
                 >
                   General
+                </Tabs.Trigger>
+                <Tabs.Trigger
+                  className={clsx(
+                    "w-full px-3 py-2 text-left hover:bg-gray-100",
+                    {
+                      "font-medium outline-dashed outline-1 outline-black":
+                        currentTab === "config",
+                    },
+                  )}
+                  value="config"
+                >
+                  Configuration
                 </Tabs.Trigger>
                 <Tabs.Trigger
                   className={clsx(
@@ -275,6 +288,12 @@ function ProfileMenu({ project }) {
                     </button>
                   </div>
                 </>
+              </Tabs.Content>
+              <Tabs.Content
+                className="w-full overflow-y-scroll pr-6"
+                value="config"
+              >
+                <Configuration project={project} />
               </Tabs.Content>
               <Tabs.Content
                 className="w-full overflow-y-scroll pr-6"

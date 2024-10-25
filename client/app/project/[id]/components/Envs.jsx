@@ -157,7 +157,7 @@ export default function Envs({ project }) {
       <div className="mb-2 flex max-w-lg px-1">
         {newEnvs.length > 0 && isNewEnvsValid && (
           <button
-            className="ml-auto mt-2 w-full bg-black px-3 py-2 text-center font-sans text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
+            className="mt-2 w-full bg-black px-3 py-2 text-center font-sans text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
             onClick={() => handleAddEnv(project.id)}
             disabled={isAddingEnvs}
           >
