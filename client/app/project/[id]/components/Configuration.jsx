@@ -1,4 +1,4 @@
-import { useCallback,  useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { presets } from "@/helpers/projectPresets";
 import * as Accordion from "@radix-ui/react-accordion";
@@ -110,15 +110,8 @@ export default function Configuration({ project }) {
     outputDir: false,
   });
 
-  const changes = useMemo(
-    () => getChangedFields(config, project),
-    [config, project],
-  );
-
-  const validation = useMemo(
-    () => validateChanges(changes, config),
-    [changes, config],
-  );
+  const changes = getChangedFields(config, project);
+  const validation = validateChanges(changes, config);
 
   const handlePresetChange = useCallback((event) => {
     const selectedValue = event.target.value;
@@ -175,10 +168,7 @@ export default function Configuration({ project }) {
     console.log("Valid changes to save:", changes);
   }, [changes, validation.isValid]);
 
-  const canSave = useMemo(
-    () => changes !== null && validation.isValid,
-    [changes, validation.isValid],
-  );
+  const canSave = changes !== null && validation.isValid;
 
   return (
     <div className="max-w-lg p-1">

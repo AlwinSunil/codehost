@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { useSession } from "next-auth/react";
 import { notFound } from "next/navigation";
-
-import Loading from "@/app/loading";
 
 import LatestCommit from "./components/LatestCommit";
 import LatestTask from "./components/LatestTask";
@@ -20,9 +18,7 @@ export default function Project() {
   const { data: session } = useSession();
   const { project, error } = useProject();
 
-  const githubLink = useMemo(() => {
-    return project ? handleGithubLink(project.repoLink) : "";
-  }, [project]);
+  const githubLink = project ? handleGithubLink(project.repoLink) : "";
 
   if (!error && !project) {
     return <div className="py-3 text-lg font-semibold">Loading...</div>;

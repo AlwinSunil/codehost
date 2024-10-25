@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import clsx from "clsx";
@@ -18,7 +18,8 @@ const statusClasses = {
   FAILED: "border-red-400 bg-red-100 text-red-700",
 };
 
-export default function Task({ params }) {
+export default function Task(props) {
+  const params = use(props.params);
   const { project, error } = useProject();
 
   const logsRef = useRef(null);

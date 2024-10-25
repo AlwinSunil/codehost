@@ -6,7 +6,11 @@ import ProjectHeader from "./components/ProjectHeader";
 import { ProjectProvider } from "./Context/ProjectContext";
 import { TaskRefetchProvider } from "./Context/TaskRefetchContext";
 
-export default async function Project({ children, params }) {
+export default async function Project(props) {
+  const params = await props.params;
+
+  const { children } = props;
+
   const session = await getServerSession(authConfig);
 
   if (!session) {
