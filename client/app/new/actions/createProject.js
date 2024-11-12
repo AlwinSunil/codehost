@@ -9,6 +9,19 @@ import { authConfig } from "@/lib/auth";
 import { octokit } from "@/lib/octokit";
 import { prisma } from "@/lib/prisma";
 
+const presets = {
+  VITEJS: {
+    installCommand: "npm install",
+    buildCommand: "npm run build",
+    outputDirectory: "dist",
+  },
+  CRA: {
+    installCommand: "npm install",
+    buildCommand: "npm run build",
+    outputDirectory: "build",
+  },
+};
+
 const generateSubdomain = (repo) => {
   const randomLetters = crypto
     .randomBytes(5)
@@ -26,15 +39,6 @@ const getLatestCommit = async (owner, repo, branch) => {
     ref: branch,
   });
   return commit;
-};
-
-const presets = {
-  VITEJS: {
-    installCommand: "npm install",
-    buildCommand: "npm run build",
-    outputDirectory: "dist",
-  },
-  // Add more presets as needed
 };
 
 export async function createProject(

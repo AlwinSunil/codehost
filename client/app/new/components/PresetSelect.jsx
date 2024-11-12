@@ -19,7 +19,7 @@ const PresetSelect = ({ presets, selectedPreset, onChange }) => (
         alt={selectedPreset.name}
         className="h-4 w-4"
       />
-      <span id="selected-name">{selectedPreset.name}</span>
+      <span className="text-base leading-5">{selectedPreset.name}</span>
     </div>
   </div>
 );

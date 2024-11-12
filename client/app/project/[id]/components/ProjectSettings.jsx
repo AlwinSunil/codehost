@@ -141,7 +141,9 @@ function ProfileMenu({ project }) {
             <span className="flex items-center gap-1 font-medium leading-4 tracking-tight">
               <span>{project?.name}</span>
               <span>/</span>
-              <span className="text-gray-500">settings</span>
+              <Dialog.Description className="text-gray-500">
+                settings
+              </Dialog.Description>
             </span>
             <Dialog.Close className="w-fit border border-black px-3 py-1 text-xs font-semibold text-black hover:bg-gray-100">
               Close
@@ -213,7 +215,7 @@ function ProfileMenu({ project }) {
                     <div className="mt-4 flex items-center gap-1.5">
                       <a
                         href={deployedURL(project?.subdomain)}
-                        className="flex h-6 items-center justify-center rounded-sm border border-gray-200 bg-gray-50 px-2 font-sans text-sm hover:cursor-pointer hover:underline"
+                        className="flex h-6 items-center justify-center rounded border border-gray-200 bg-gray-50 px-2 font-sans text-sm hover:cursor-pointer hover:underline"
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -227,7 +229,7 @@ function ProfileMenu({ project }) {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="h-6 cursor-pointer items-center justify-center rounded-sm border border-gray-200 p-1 text-black shadow-inner hover:bg-gray-100"
+                        className="h-6 cursor-pointer items-center justify-center rounded border border-gray-200 p-1 text-black shadow-inner hover:bg-gray-100"
                         onClick={() => copyToClipboard(deployedURL)}
                       >
                         <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
