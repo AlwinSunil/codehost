@@ -4,7 +4,8 @@ export const validateConfig = (config, rootDir) => {
   const isMalicious = (command) =>
     maliciousPatterns.some((pattern) => pattern.test(command));
 
-  const fieldsToCheck = ["installCommand", "buildCommand", "outputDirectory"];
+  // Check for potentially malicious content in installCommand, buildCommand, and outputDir
+  const fieldsToCheck = ["installCommand", "buildCommand", "outputDir"];
   for (const field of fieldsToCheck) {
     if (config[field]?.value && isMalicious(config[field].value)) {
       alert(`${field} contains potentially malicious content.`);

@@ -3,22 +3,21 @@
 import crypto from "crypto";
 import { getServerSession } from "next-auth";
 
-import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
-
 import { authConfig } from "@/lib/auth";
 import { octokit } from "@/lib/octokit";
 import { prisma } from "@/lib/prisma";
+import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
 
 const presets = {
   VITEJS: {
     installCommand: "npm install",
     buildCommand: "npm run build",
-    outputDirectory: "dist",
+    outputDir: "dist",
   },
   CRA: {
     installCommand: "npm install",
     buildCommand: "npm run build",
-    outputDirectory: "build",
+    outputDir: "build",
   },
 };
 
@@ -77,11 +76,11 @@ export async function createProject(
       ? projectConfig.buildCommand.value
       : presets[projectPreset]?.buildCommand;
 
-    const outputDirectory = projectConfig.outputDirectory.allowOverride
-      ? projectConfig.outputDirectory.value
-      : presets[projectPreset]?.outputDirectory;
+    const outputDir = projectConfig.outputDir.allowOverride
+      ? projectConfig.outputDir.value
+      : presets[projectPreset]?.outputDir;
 
-    if (!installCommand || !buildCommand || !outputDirectory) {
+    if (!installCommand || !buildCommand || !outputDir) {
       throw new Error("Missing required commands for project setup.");
     }
 
@@ -119,7 +118,7 @@ export async function createProject(
           preset: projectPreset,
           installCommand,
           buildCommand,
-          outputDir: outputDirectory,
+          outputDir: outputDir,
           EnvironmentVariables: {
             create: envs.map(({ key, value }) => ({
               key,
@@ -162,7 +161,7 @@ export async function createProject(
         projectPreset,
         installCommand,
         buildCommand,
-        outputDirectory,
+        outputDir,
       );
 
       return { success: true, id: project.id };

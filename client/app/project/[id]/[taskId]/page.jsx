@@ -235,7 +235,9 @@ export default function Task(props) {
         <h2 className="mb-2.5 text-lg font-semibold">Deployment task logs</h2>
 
         {isFetching && (
-          <p className="text-sm font-medium text-gray-600">Fetching logs...</p>
+          <p className="mb-3 text-sm font-medium text-gray-600">
+            Fetching logs...
+          </p>
         )}
 
         {!data.error && data.logs.length > 0 && (

@@ -6,7 +6,7 @@ export const presets = [
     config: {
       installCommand: "npm install",
       buildCommand: "npm run build",
-      outputDirectory: "dist",
+      outputDir: "dist",
     },
   },
   {
@@ -16,7 +16,20 @@ export const presets = [
     config: {
       installCommand: "npm install",
       buildCommand: "npm run build",
-      outputDirectory: "build",
+      outputDir: "build",
     },
   },
 ];
+
+export const configDefaults = {
+  VITEJS: {
+    installCommand: "npm install",
+    buildCommand: "npm run build",
+    outputDir: "dist",
+  },
+  CRA: {
+    installCommand: "npm install",
+    buildCommand: "npm run build",
+    outputDir: "build",
+  },
+};

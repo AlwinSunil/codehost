@@ -2,10 +2,9 @@
 
 import { getServerSession } from "next-auth";
 
-import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
-
 import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
 
 import getLatestCommit from "./getLatestCommit";
 

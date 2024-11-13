@@ -57,7 +57,7 @@ model Project {
 
 enum Preset {
   VITEJS
-  OTHER
+  CRA
 }
 
 model EnvironmentVariables {

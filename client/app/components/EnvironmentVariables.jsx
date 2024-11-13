@@ -220,7 +220,7 @@ export default function EnvironmentVariables({
 
           {!isEnvsValid && (
             <button
-              className="ml-auto w-fit justify-center bg-black px-4 py-1 font-sans text-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+              className="ml-auto w-fit justify-center bg-black px-4 py-1 font-sans text-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
               onClick={handleValidateEnvs}
               disabled={loading}
             >

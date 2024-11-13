@@ -4,40 +4,20 @@ import { getServerSession } from "next-auth";
 
 import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isValidPath } from "@/helpers/isValidPath";
 
 const presets = {
   VITEJS: {
     installCommand: "npm install",
     buildCommand: "npm run build",
-    outputDirectory: "dist",
+    outputDir: "dist",
   },
   CRA: {
     installCommand: "npm install",
     buildCommand: "npm run build",
-    outputDirectory: "build",
+    outputDir: "build",
   },
 };
-
-const isValidPath = (path, pattern, invalidChars) => {
-  const trimmedPath = path.trim();
-  return (
-    !invalidChars.test(trimmedPath) &&
-    pattern.test(trimmedPath) &&
-    !trimmedPath.includes("..")
-  );
-};
-
-const isValidCommand = (command) => {
-  const maliciousPatterns = [/;.*$/, /&&.*$/, /(\|\|)/, /(\&\&)/];
-  return (
-    !command.includes("..") &&
-    !maliciousPatterns.some((pattern) => pattern.test(command)) &&
-    !command.includes("|")
-  );
-};
-
-const isValidOutputDir = (dir) =>
-  !dir.includes(" ") && !dir.includes("..") && !dir.includes("/");
 
 export async function updateProjectConfig(projectId, changes) {
   const session = await getServerSession(authConfig);
@@ -56,54 +36,20 @@ export async function updateProjectConfig(projectId, changes) {
 
     let updatedChanges = { ...changes };
 
-    // Apply preset defaults if preset is changing
     if (changes.preset && changes.preset !== project.preset) {
       const presetDefaults = presets[changes.preset];
       updatedChanges = { ...updatedChanges, ...presetDefaults, ...changes };
     }
 
-    // Validate changes
-    if (
-      updatedChanges.rootDir &&
-      !isValidPath(
-        updatedChanges.rootDir,
-        /^([.]{1}\/|\/)?([a-zA-Z0-9_-]+\/?)*$/,
-        /[<>:"|?*\\]/,
-      )
-    ) {
+    console.log(updatedChanges);
+
+    if (updatedChanges.rootDir && !isValidPath(updatedChanges.rootDir)) {
       return { success: false, error: "Invalid root directory path" };
     }
 
-    if (
-      updatedChanges.buildCommand &&
-      !isValidCommand(updatedChanges.buildCommand)
-    ) {
-      return { success: false, error: "Invalid build command" };
-    }
-
-    if (
-      updatedChanges.installCommand &&
-      !isValidCommand(updatedChanges.installCommand)
-    ) {
-      return { success: false, error: "Invalid install command" };
-    }
-
-    if (
-      updatedChanges.outputDir &&
-      !isValidOutputDir(updatedChanges.outputDir)
-    ) {
-      return { success: false, error: "Invalid output directory" };
-    }
-
-    // Filter out undefined or null values
-    const validUpdates = Object.fromEntries(
-      Object.entries(updatedChanges).filter(([_, value]) => value != null),
-    );
-
-    // Update project with validated changes
     await prisma.project.update({
       where: { id: projectId },
-      data: validUpdates,
+      data: updatedChanges,
     });
 
     return {

@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import clsx from "clsx";
+
 import { presets } from "@/helpers/projectPresets";
 import { validateConfig } from "@/helpers/validateConfig";
-import clsx from "clsx";
 
 import { createProject } from "./actions/createProject";
 import { validateAndFetchBranches } from "./actions/validateRepo";
@@ -35,7 +36,7 @@ const initialConfig = {
     allowOverride: false,
     placeholder: "npm run install",
   },
-  outputDirectory: { value: "", allowOverride: false, placeholder: "dist" },
+  outputDir: { value: "", allowOverride: false, placeholder: "dist" },
 };
 
 export default function NewProject() {
@@ -53,7 +54,7 @@ export default function NewProject() {
   const [projectConfig, setProjectConfig] = useState(initialConfig);
 
   const [envVars, setEnvVars] = useState([]);
-  const [isEnvsValid, setIsEnvsValid] = useState(false);
+  const [isEnvsValid, setIsEnvsValid] = useState(true);
 
   const [isValidating, setIsValidating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -112,8 +113,6 @@ export default function NewProject() {
 
     if (!config) return;
     if (!validatedRootDir) return;
-
-    console.log(config, validatedRootDir);
 
     setIsCreating(true);
 
@@ -204,7 +203,7 @@ export default function NewProject() {
           <div className="mt-4 flex justify-end">
             <button
               type="submit"
-              className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+              className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
               disabled={isValidating}
             >
               {isValidating ? "Validating..." : "Validate Repo"}
@@ -277,7 +276,7 @@ export default function NewProject() {
             <button
               type="button"
               onClick={handleBranchSelection}
-              className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+              className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
               disabled={!selectedBranch}
             >
               Next
@@ -312,24 +311,14 @@ export default function NewProject() {
               >
                 Reset
               </button>
-              {isEnvsValid ? (
-                <button
-                  type="button"
-                  className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
-                  onClick={createProjectFormAction}
-                  disabled={isCreating}
-                >
-                  {isCreating ? "Creating Project..." : "Create Project"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
-                  disabled={true}
-                >
-                  Create Project
-                </button>
-              )}
+              <button
+                type="button"
+                className="inline-flex justify-center bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
+                onClick={createProjectFormAction}
+                disabled={isCreating || !isEnvsValid}
+              >
+                {isCreating ? "Creating Project..." : "Create Project"}
+              </button>
             </div>
           )}
         </>
@@ -341,15 +330,17 @@ export default function NewProject() {
             {createProjectState.error}
           </p>
           <div className="mt-6 flex justify-end gap-2">
-            <Link
-              href={`/project/${createProjectState.ongoingJobProjectId}`}
-              className="inline-flex justify-center border border-black bg-white px-4 py-2 text-sm font-medium tracking-tight text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-            >
-              Go to ongoing job
-            </Link>
+            {createProjectState.ongoingJobProjectId && (
+              <Link
+                href={`/project/${createProjectState.ongoingJobProjectId}`}
+                className="inline-flex justify-center border border-black bg-white px-4 py-2 text-sm font-medium tracking-tight text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+              >
+                Go to ongoing job
+              </Link>
+            )}
             <button
               type="button"
-              className="inline-flex justify-center border border-transparent bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/50"
+              className="inline-flex justify-center border border-transparent bg-black px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
               onClick={resetForm}
             >
               Reset form

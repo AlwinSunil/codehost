@@ -232,7 +232,6 @@ export default function ProjectConfigurator({
                     <ConfigField
                       key={field}
                       field={field}
-                      placeholder={projectConfig[field].placeholder}
                       value={projectConfig[field].value}
                       allowOverride={projectConfig[field].allowOverride}
                       onInputChange={(value) => handleInputChange(field, value)}

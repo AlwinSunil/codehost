@@ -4,7 +4,6 @@ import * as Switch from "@radix-ui/react-switch";
 
 const ConfigField = ({
   field,
-  placeholder,
   value,
   allowOverride,
   onInputChange,
@@ -23,7 +22,7 @@ const ConfigField = ({
             ? "border-gray-300 text-gray-800 hover:border-gray-400"
             : "border-gray-200 bg-gray-50 text-gray-500"
         }`}
-        placeholder={`e.g, ${placeholder}`}
+        placeholder={value}
         value={value}
         onChange={(e) => onInputChange(e.target.value)}
         disabled={!allowOverride}
