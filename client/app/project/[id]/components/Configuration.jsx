@@ -16,6 +16,7 @@ import { useProject } from "../Context/ProjectContext";
 export default function Configuration({ project }) {
   const { refetchProject } = useProject();
 
+  // Initial state setup with all required state variables
   const originalConfig = {
     rootDir: project.rootDir || "./",
     preset: project.preset || presets[0].value,
@@ -25,18 +26,7 @@ export default function Configuration({ project }) {
   };
 
   const [formValues, setFormValues] = useState(originalConfig);
-
   const [pendingChanges, setPendingChanges] = useState({});
-
-  // UI state
-  const [fieldOverrides, setFieldOverrides] = useState({
-    buildCommand:
-      project.buildCommand != configDefaults[project.preset].buildCommand,
-    installCommand:
-      project.installCommand != configDefaults[project.preset].installCommand,
-    outputDir: project.outputDir != configDefaults[project.preset]?.outputDir,
-  });
-
   const [validationState, setValidationState] = useState({});
   const [isEditingRootDir, setIsEditingRootDir] = useState(false);
   const [accordionValue, setAccordionValue] = useState(null);
@@ -44,153 +34,130 @@ export default function Configuration({ project }) {
   const [selectedPreset, setSelectedPreset] = useState(
     presets.find((preset) => preset.value === project.preset) || presets[0],
   );
+  const [fieldOverrides, setFieldOverrides] = useState({
+    buildCommand:
+      project.buildCommand !== configDefaults[project.preset].buildCommand,
+    installCommand:
+      project.installCommand !== configDefaults[project.preset].installCommand,
+    outputDir: project.outputDir !== configDefaults[project.preset]?.outputDir,
+  });
 
-  // Helper function to update pending changes
-  const updatePendingChanges = useCallback(
-    (field, value) => {
-      setPendingChanges((prev) => {
-        // If the new value matches the original config, remove it from pending changes
-        if (value === originalConfig[field]) {
-          const { [field]: _, ...rest } = prev;
-          return rest;
-        }
-        // Otherwise, add/update the pending change
-        return { ...prev, [field]: value };
-      });
-    },
-    [originalConfig],
-  );
-
+  // useCallback as this is used in dependency arrays and passed to children
   const validateField = useCallback((field, value) => {
     let error = "";
 
     switch (field) {
       case "rootDir":
-        error = !isValidPath(value) ? "Invalid path for root directory" : "";
+      case "outputDir":
+        error = !isValidPath(value) ? `Invalid path for ${field}` : "";
         break;
 
       case "installCommand":
-
       case "buildCommand":
         const commandValidation = isValidCommand(value);
-        if (!commandValidation.valid) {
-          error = commandValidation.error;
-        }
-        break;
-
-      case "outputDir":
-        error = !isValidPath(value) ? "Invalid path for Output directory" : "";
+        error = commandValidation.valid ? "" : commandValidation.error;
         break;
     }
 
-    setValidationState((prev) => ({
-      ...prev,
-      [field]: error,
-    }));
-
+    setValidationState((prev) => ({ ...prev, [field]: error }));
     return !error;
   }, []);
 
-  const handlePresetChange = useCallback(
-    (e) => {
-      const newPreset = e.target.value;
-      setSelectedPreset(presets.find((preset) => preset.value === newPreset));
-      setFormValues((prev) => ({ ...prev, preset: newPreset }));
-      updatePendingChanges("preset", newPreset);
-    },
-    [updatePendingChanges],
-  );
-
-  const handleRootDirChange = useCallback(
-    (e) => {
-      const newRootDir = e.target.value;
-      setFormValues((prev) => ({ ...prev, rootDir: newRootDir }));
-
-      if (validateField("rootDir", newRootDir)) {
-        updatePendingChanges("rootDir", newRootDir);
-      }
-    },
-    [validateField, updatePendingChanges],
-  );
-
+  // useCallback as this function is used in multiple child component props
   const handleFieldChange = useCallback(
     (field, value) => {
       setFormValues((prev) => ({ ...prev, [field]: value }));
 
       if (validateField(field, value)) {
-        updatePendingChanges(field, value);
+        // Update pending changes if value differs from original
+        setPendingChanges((prev) => {
+          if (value === originalConfig[field]) {
+            const { [field]: _, ...rest } = prev;
+            return rest;
+          }
+          return { ...prev, [field]: value };
+        });
       }
     },
-    [validateField, updatePendingChanges],
+    [validateField, originalConfig],
   );
 
-  // Toggle field override
+  // useCallback as it's passed to PresetSelect component
+  const handlePresetChange = useCallback((e) => {
+    const newPresetValue = e.target.value;
+
+    setSelectedPreset(
+      presets.find((preset) => preset.value === newPresetValue),
+    );
+    setFormValues((prev) => ({
+      ...prev,
+      preset: newPresetValue,
+      buildCommand: configDefaults[newPresetValue].buildCommand,
+      installCommand: configDefaults[newPresetValue].installCommand,
+      outputDir: configDefaults[newPresetValue].outputDir,
+    }));
+    setPendingChanges((prev) => ({
+      ...prev,
+      preset: newPresetValue,
+      buildCommand: configDefaults[newPresetValue].buildCommand,
+      installCommand: configDefaults[newPresetValue].installCommand,
+      outputDir: configDefaults[newPresetValue].outputDir,
+    }));
+  }, []);
+
+  // useCallback as it handles complex state updates and is passed to child components
   const toggleOverride = useCallback(
     (field) => {
       setFieldOverrides((prev) => {
         const newOverrideState = !prev[field];
-        const newOverrides = {
-          ...prev,
-          [field]: newOverrideState,
-        };
-
-        // If turning OFF override, set to preset default
         if (!newOverrideState) {
-          const currentPreset = selectedPreset;
+          const presetDefaultValue = selectedPreset.config[field];
+          setFormValues((prev) => ({ ...prev, [field]: presetDefaultValue }));
 
-          const presetDefaultValue = currentPreset.config[field];
-
-          // Update form value to preset default
-          setFormValues((prevForm) => ({
-            ...prevForm,
-            [field]: presetDefaultValue,
-          }));
-
-          // Add to pending changes if different from project config
           if (presetDefaultValue !== project[field]) {
-            setPendingChanges((prevChanges) => ({
-              ...prevChanges,
+            setPendingChanges((prev) => ({
+              ...prev,
               [field]: presetDefaultValue,
             }));
           }
         }
-
-        return newOverrides;
+        return { ...prev, [field]: newOverrideState };
       });
     },
-    [selectedPreset.value, project, presets],
+    [selectedPreset, project],
   );
 
+  // useCallback due to async operation and dependency on state
   const handleSaveChanges = useCallback(async () => {
     if (Object.keys(pendingChanges).length === 0) return;
 
     setIsSaving(true);
     try {
       const response = await updateProjectConfig(project.id, pendingChanges);
-      console.log(response);
 
       if (response.success) {
         refetchProject();
         toast.success("Configuration updated successfully");
-
-        // Reset pending changes after successful save
         setPendingChanges({});
       } else {
-        const errorMessage = response.error || "An unknown error occurred";
-        toast.error(errorMessage);
+        toast.error(response.error || "An unknown error occurred");
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       toast.error("Failed to update configuration");
     } finally {
       setIsSaving(false);
     }
-  }, [pendingChanges, project.id]);
+  }, [pendingChanges, project.id, refetchProject]);
 
-  // Check if changes are valid
-  const areChangesValid = useCallback(() => {
-    return Object.keys(validationState).every((key) => !validationState[key]);
-  }, [validationState]);
+  const handleRootDirChange = (e) => {
+    const newRootDir = e.target.value;
+    handleFieldChange("rootDir", newRootDir);
+  };
+
+  const areChangesValid = () => {
+    return Object.values(validationState).every((error) => !error);
+  };
 
   return (
     <div className="max-w-lg p-1">
@@ -240,7 +207,7 @@ export default function Configuration({ project }) {
                   : "border-black",
               )}
             >
-              {isEditingRootDir ? "Save" : "Edit"}
+              {isEditingRootDir ? "Done" : "Edit"}
             </button>
           </div>
           {validationState.rootDir && (
@@ -249,8 +216,6 @@ export default function Configuration({ project }) {
             </p>
           )}
         </div>
-
-        <hr className="mt-5" />
 
         <Accordion.Root
           type="single"
@@ -271,9 +236,7 @@ export default function Configuration({ project }) {
               <Accordion.Trigger
                 className={clsx(
                   "flex w-full items-center justify-between px-5 py-3.5 text-left font-semibold",
-                  {
-                    "border-b": accordionValue === "customizeSettings",
-                  },
+                  { "border-b": accordionValue === "customizeSettings" },
                 )}
               >
                 Customize build & output settings
@@ -317,7 +280,21 @@ export default function Configuration({ project }) {
             </Accordion.Content>
             {Object.keys(fieldOverrides).some((key) => fieldOverrides[key]) && (
               <div className="flex border-t px-4 py-2.5">
-                <div className="rounded-full border border-yellow-300 bg-yellow-100 px-3 py-0.5 font-sans text-xs font-medium tracking-normal text-yellow-700">
+                <div className="flex items-center rounded-full border border-yellow-300 bg-yellow-100 px-3 py-0.5 font-sans text-xs font-medium tracking-normal text-yellow-700">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mr-1 h-3.5 w-3.5"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                  </svg>
                   Overrides are enabled for this project
                 </div>
               </div>
@@ -329,14 +306,8 @@ export default function Configuration({ project }) {
           <button
             type="button"
             onClick={handleSaveChanges}
-            disabled={
-              !areChangesValid() ||
-              Object.keys(pendingChanges).length === 0 ||
-              isSaving
-            }
-            className={clsx(
-              "mt-3 w-full bg-black px-3 py-2 text-center text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60",
-            )}
+            disabled={!areChangesValid() || isSaving}
+            className="mt-3 w-full bg-black px-3 py-2 text-center text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-black/60"
           >
             {isSaving ? "Saving..." : "Save Changes"}
           </button>

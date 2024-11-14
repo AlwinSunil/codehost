@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 
 import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isValidCommand } from "@/helpers/isValidCommand";
 import { isValidPath } from "@/helpers/isValidPath";
 
 const presets = {
@@ -41,11 +42,27 @@ export async function updateProjectConfig(projectId, changes) {
       updatedChanges = { ...updatedChanges, ...presetDefaults, ...changes };
     }
 
-    console.log(updatedChanges);
+    let error = null;
+    Object.entries(updatedChanges).forEach(([field, value]) => {
+      switch (field) {
+        case "rootDir":
+        case "outputDir":
+          if (!isValidPath(value)) {
+            error = `Invalid path for ${field}`;
+          }
+          break;
 
-    if (updatedChanges.rootDir && !isValidPath(updatedChanges.rootDir)) {
-      return { success: false, error: "Invalid root directory path" };
-    }
+        case "installCommand":
+        case "buildCommand":
+          const commandValidation = isValidCommand(value);
+          if (!commandValidation.valid) {
+            error = commandValidation.error;
+          }
+          break;
+      }
+    });
+
+    if (error) return { success: false, error };
 
     await prisma.project.update({
       where: { id: projectId },
