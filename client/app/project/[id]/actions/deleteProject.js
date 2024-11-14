@@ -142,6 +142,10 @@ export async function deleteProject(projectId) {
 
       await redis.del(project.subdomain);
 
+      await prisma.environmentVariables.deleteMany({
+        where: { projectId },
+      });
+
       await prisma.project.delete({
         where: {
           id: projectId,

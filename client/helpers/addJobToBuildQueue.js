@@ -1,3 +1,5 @@
+"use server";
+
 const { SendMessageCommand } = require("@aws-sdk/client-sqs");
 const { sqsClient } = require("@/lib/aws");
 

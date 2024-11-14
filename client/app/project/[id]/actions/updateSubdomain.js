@@ -7,7 +7,6 @@ import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/upstash";
 
 export async function updateSubdomain(projectId, subdomain) {
-  console.log(projectId, subdomain);
   const session = await getServerSession(authConfig);
   if (!session || !session.user) {
     return { success: false, message: "Unauthorized" };

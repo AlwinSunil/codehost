@@ -2,22 +2,21 @@
 
 import { getServerSession } from "next-auth";
 
-import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
-
 import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
 
 import getLatestCommit from "./getLatestCommit";
 
 export default async function deployLatestCommit(id, repo, branch) {
   try {
-    const latestCommit = await getLatestCommit(id, repo, branch);
-
     const session = await getServerSession(authConfig);
 
     if (!session || !session.user) {
       return { success: false, error: "User not authenticated" };
     }
+
+    const latestCommit = await getLatestCommit(id, repo, branch);
 
     const userId = session.user.id;
 

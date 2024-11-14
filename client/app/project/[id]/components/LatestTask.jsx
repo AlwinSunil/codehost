@@ -119,8 +119,8 @@ export default function LatestTask({ projectId }) {
           href={`/project/${projectId}/${latestTask.id}`}
           className="group flex w-full items-center justify-between gap-2 px-4 py-6 hover:cursor-pointer hover:bg-gray-50/50 md:px-10"
         >
-          <p className="flex items-center gap-2 text-sm text-black">
-            <div className="flex items-center gap-1.5 group-hover:underline">
+          <div className="flex items-center gap-2 text-sm text-black">
+            <p className="flex items-center gap-1.5 group-hover:underline">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -136,7 +136,7 @@ export default function LatestTask({ projectId }) {
                 <line x1="15" x2="21" y1="12" y2="12" />
               </svg>
               {latestTask.commitHash.slice(0, 7)}
-            </div>
+            </p>
             {isCurrentTaskProd && (
               <div className="flex items-center gap-1 rounded-full bg-blue-100 p-0.5 pl-1 pr-2.5 text-blue-700">
                 <svg
@@ -156,7 +156,7 @@ export default function LatestTask({ projectId }) {
                 <p className="font-sans text-xs font-medium">Current</p>
               </div>
             )}
-          </p>
+          </div>
           <p className="w-72 truncate text-xs text-gray-700">
             {latestTask.commitMessage}
           </p>
@@ -196,7 +196,7 @@ export default function LatestTask({ projectId }) {
             </p>
             <span className="text-gray-700">#{latestTask.id.slice(0, 10)}</span>
             <button
-              className="flex gap-1.5 bg-black px-2 py-1 text-white disabled:bg-gray-500"
+              className="flex gap-1.5 bg-black px-2 py-1 font-medium text-white disabled:bg-gray-500"
               disabled={revertLoading}
               onClick={() => handleRollbackToLatest(projectId, latestTask.id)}
             >

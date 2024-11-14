@@ -1,12 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
-
-import Loading from "@/app/loading";
 
 import { fetchTaskDetailsAndLogs } from "./actions/fetchTaskDetailsAndLogs";
 import { useProject } from "../Context/ProjectContext";
@@ -20,7 +18,8 @@ const statusClasses = {
   FAILED: "border-red-400 bg-red-100 text-red-700",
 };
 
-export default function Task({ params }) {
+export default function Task(props) {
+  const params = use(props.params);
   const { project, error } = useProject();
 
   const logsRef = useRef(null);
@@ -236,7 +235,9 @@ export default function Task({ params }) {
         <h2 className="mb-2.5 text-lg font-semibold">Deployment task logs</h2>
 
         {isFetching && (
-          <p className="text-sm font-medium text-gray-600">Fetching logs...</p>
+          <p className="mb-3 text-sm font-medium text-gray-600">
+            Fetching logs...
+          </p>
         )}
 
         {!data.error && data.logs.length > 0 && (

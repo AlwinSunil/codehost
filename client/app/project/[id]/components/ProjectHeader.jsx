@@ -33,7 +33,7 @@ export default function ProjectHeader() {
     <>
       <div className="relative flex justify-center gap-5 pb-6 pt-6">
         <img
-          src={`https://api.dicebear.com/9.x/bottts/svg?seed=${project?.name}`}
+          src={project?.avatar}
           className="h-20 w-20 rounded-full border bg-gray-50 p-2"
           alt="Profile Picture"
         />
@@ -55,7 +55,7 @@ export default function ProjectHeader() {
           <div className="mt-0.5 flex items-center gap-1.5">
             <a
               href={deployedURL(project?.subdomain)}
-              className="flex h-6 items-center justify-center rounded-sm border border-gray-200 px-2 font-sans text-sm shadow-inner hover:cursor-pointer hover:underline"
+              className="flex h-6 items-center justify-center rounded border border-gray-200 px-2 font-sans text-sm shadow-inner hover:cursor-pointer hover:underline"
               target="_blank"
               rel="noreferrer"
             >
@@ -69,7 +69,7 @@ export default function ProjectHeader() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-6 cursor-pointer items-center justify-center rounded-sm border border-gray-200 p-1 text-black shadow-inner hover:bg-gray-50"
+              className="h-6 cursor-pointer items-center justify-center rounded border border-gray-200 p-1 text-black shadow-inner hover:bg-gray-50"
               onClick={() => copyToClipboard(deployedURL)}
             >
               <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />

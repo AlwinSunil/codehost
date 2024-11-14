@@ -27,8 +27,6 @@ export async function fetchLatestTask(projectId) {
       return { success: false, error: "No tasks found for this project." };
     }
 
-    console.log("latestTask", latestTask);
-
     return { success: true, task: latestTask };
   } catch (error) {
     console.error("Error fetching latest task:", error);

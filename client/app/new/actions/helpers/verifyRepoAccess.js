@@ -4,8 +4,6 @@ export async function verifyRepoAccess(repoUrl, givenBranch) {
   try {
     const { branches } = await getGithubRepoAndBranch(repoUrl);
 
-    console.log("branches", branches);
-
     if (!branches.find((branch) => branch.name === givenBranch)) {
       return false;
     }

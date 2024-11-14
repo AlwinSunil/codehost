@@ -109,6 +109,39 @@ const getRunningTasksCount = async () => {
 	}
 };
 
+const getEnvironmentVariablesForProject = async (projectId) => {
+	try {
+		const envVarsQuery = await client.sql`
+			SELECT "key", "value" 
+			FROM "EnvironmentVariables" 
+			WHERE "projectId" = ${projectId};
+		`;
+		if (envVarsQuery.rowCount === 0) {
+			console.log(
+				`No environment variables found for project ID: ${projectId}`
+			);
+			return [];
+		}
+
+		const envVars = envVarsQuery.rows;
+		console.log(
+			`Found environment variables for project ID: ${projectId}:`,
+			envVars.map((env) => env.key)
+		);
+
+		return envVars.map(({ key, value }) => ({
+			name: key,
+			value,
+		}));
+	} catch (error) {
+		console.error(
+			`Error retrieving environment variables for project ID: ${projectId}`,
+			error
+		);
+		throw error;
+	}
+};
+
 const startBuildTaskContainer = async (taskData) => {
 	console.log(
 		`Attempting to start container process for task: ${taskData.TaskId}`
@@ -131,6 +164,10 @@ const startBuildTaskContainer = async (taskData) => {
 		);
 	}
 
+	const environmentVariables = await getEnvironmentVariablesForProject(
+		taskData.ProjectId
+	);
+
 	const runTaskParams = {
 		cluster: clusterArn,
 		taskDefinition: "CodeHost-build-task",
@@ -152,6 +189,8 @@ const startBuildTaskContainer = async (taskData) => {
 						},
 						{ name: "BUILD_COMMAND", value: taskData.BuildCommand },
 						{ name: "OUTPUT_DIR", value: taskData.OutputDir },
+						// Include retrieved environment variables from the database
+						...environmentVariables,
 					],
 				},
 			],

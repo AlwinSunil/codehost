@@ -3,11 +3,23 @@
 import crypto from "crypto";
 import { getServerSession } from "next-auth";
 
-import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
-
 import { authConfig } from "@/lib/auth";
 import { octokit } from "@/lib/octokit";
 import { prisma } from "@/lib/prisma";
+import { addJobToBuildQueue } from "@/helpers/addJobToBuildQueue";
+
+const presets = {
+  VITEJS: {
+    installCommand: "npm install",
+    buildCommand: "npm run build",
+    outputDir: "dist",
+  },
+  CRA: {
+    installCommand: "npm install",
+    buildCommand: "npm run build",
+    outputDir: "build",
+  },
+};
 
 const generateSubdomain = (repo) => {
   const randomLetters = crypto
@@ -28,21 +40,13 @@ const getLatestCommit = async (owner, repo, branch) => {
   return commit;
 };
 
-const presets = {
-  VITEJS: {
-    installCommand: "npm install",
-    buildCommand: "npm run build",
-    outputDirectory: "dist",
-  },
-  // Add more presets as needed
-};
-
 export async function createProject(
   repoUrl,
   branch,
   rootDir,
   projectPreset,
   projectConfig,
+  envs,
 ) {
   try {
     const session = await getServerSession(authConfig);
@@ -72,11 +76,11 @@ export async function createProject(
       ? projectConfig.buildCommand.value
       : presets[projectPreset]?.buildCommand;
 
-    const outputDirectory = projectConfig.outputDirectory.allowOverride
-      ? projectConfig.outputDirectory.value
-      : presets[projectPreset]?.outputDirectory;
+    const outputDir = projectConfig.outputDir.allowOverride
+      ? projectConfig.outputDir.value
+      : presets[projectPreset]?.outputDir;
 
-    if (!installCommand || !buildCommand || !outputDirectory) {
+    if (!installCommand || !buildCommand || !outputDir) {
       throw new Error("Missing required commands for project setup.");
     }
 
@@ -114,7 +118,13 @@ export async function createProject(
           preset: projectPreset,
           installCommand,
           buildCommand,
-          outputDir: outputDirectory,
+          outputDir: outputDir,
+          EnvironmentVariables: {
+            create: envs.map(({ key, value }) => ({
+              key,
+              value,
+            })),
+          },
         },
       });
 
@@ -151,7 +161,7 @@ export async function createProject(
         projectPreset,
         installCommand,
         buildCommand,
-        outputDirectory,
+        outputDir,
       );
 
       return { success: true, id: project.id };
