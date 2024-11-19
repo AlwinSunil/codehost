@@ -14,6 +14,8 @@ export async function updateSubdomain(projectId, subdomain) {
 
   const currentUserId = session.user.id;
 
+  subdomain = subdomain.toLowerCase();
+
   if (subdomain === "delivery") {
     return { success: false, message: "This is a reserved subdomain" };
   }

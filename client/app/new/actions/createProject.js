@@ -28,7 +28,7 @@ const generateSubdomain = (repo) => {
     .replace(/[^a-zA-Z]/g, "")
     .slice(0, 5)
     .toLowerCase();
-  return `${repo}-${randomLetters}`;
+  return `${repo}-${randomLetters}`.toLowerCase();
 };
 
 const getLatestCommit = async (owner, repo, branch) => {
