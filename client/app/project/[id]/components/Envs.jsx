@@ -180,10 +180,12 @@ export default function Envs({ project }) {
         ) : envs && envs.length > 0 ? (
           <div className="mt-4 flex flex-col border">
             {envs.map((env) => (
-              <>
+              <div key={env.id} className="border-b last:border-b-0">
                 <div
-                  className="flex items-center justify-between border-b px-5 py-4 last:border-b-0"
-                  key={env.id}
+                  className={clsx(
+                    "flex items-center justify-between px-5 py-4",
+                    { "border-b": editingEnv === env.id },
+                  )}
                 >
                   <span className="flex-1 text-sm font-semibold">
                     {env.key}
@@ -324,7 +326,7 @@ export default function Envs({ project }) {
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             ))}
           </div>
         ) : (
