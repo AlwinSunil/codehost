@@ -1,4 +1,5 @@
 # CodeHost
+![CodeHost Demo](https://miro.medium.com/v2/resize:fit:4800/format:webp/1*cG2BhmP1QW3tmnV0a8lZKg.gif)
 
 CodeHost is a platform for deployment of frontend web applications built with Vite.js and Create React App, with support for environment variables at build time.
 
